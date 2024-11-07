@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98bdf804-36e8-4382-b59a-8d567360b277" name="Changes" comment="LETS DO IT" />
+    <list default="true" id="98bdf804-36e8-4382-b59a-8d567360b277" name="Changes" comment="LETS DO IT">
+      <change beforePath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" beforeDir="false" afterPath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -69,7 +71,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1730974731113</updated>
-      <workItem from="1730974734714" duration="1020000" />
+      <workItem from="1730974734714" duration="1456000" />
     </task>
     <task id="LOCAL-00001" summary="LETS DO IT">
       <option name="closed" value="true" />
@@ -87,7 +89,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730975088413</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="LETS DO IT">
+      <option name="closed" value="true" />
+      <created>1730975900088</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1730975900088</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
