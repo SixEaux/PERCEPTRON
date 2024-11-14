@@ -1,3 +1,11 @@
+import numpy as np
+
+
+class Image:
+    def __init__(self):
+
+
+
 class Perceptron:
     def __init__(self,nbneurones, coefcv = 0.1, iterations=1000, sup = 0):
         self.iter = iterations
@@ -6,6 +14,7 @@ class Perceptron:
         self.poids = [1 for i in range(nbneurones)]
         self.cvcoef = coefcv
         self.sup = sup
+
 
     def fctactiv(self, x):
         if x>self.sup:
@@ -27,8 +36,9 @@ class Perceptron:
 
 
     def prediction(self, input):
-        attendu = self.produit(self.weights, input)
-        return attendu
+        attendu = self.produit(self.poids, input)
+        activ = self.fctactiv(attendu)
+        return 1 if activ > 1 else 0
 
 
 
