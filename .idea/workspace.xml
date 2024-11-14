@@ -5,8 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="98bdf804-36e8-4382-b59a-8d567360b277" name="Changes" comment="LETS DO IT">
-      <change beforePath="$PROJECT_DIR$/.idea/PERCEPTRON.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/PERCEPTRON.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" beforeDir="false" afterPath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" afterDir="false" />
     </list>
@@ -62,7 +60,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-0e3be3396995-c546a90a8094-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-242.23339.19" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-PY-242.23726.102" />
+        <option value="bundled-python-sdk-5e1850174b45-399fe30bd8c1-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-242.23726.102" />
       </set>
     </attachedChunks>
   </component>
@@ -74,7 +73,8 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1730974731113</updated>
-      <workItem from="1730974734714" duration="3405000" />
+      <workItem from="1730974734714" duration="4051000" />
+      <workItem from="1731542732057" duration="2606000" />
     </task>
     <task id="LOCAL-00001" summary="LETS DO IT">
       <option name="closed" value="true" />
@@ -116,7 +116,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730976341890</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="LETS DO IT">
+      <option name="closed" value="true" />
+      <created>1730978307395</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1730978307395</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
