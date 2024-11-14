@@ -53,3 +53,14 @@ class Perceptron:
 
 
 
+f = open("mnist_train.csv", "r")
+M = {}
+for i in range(100):
+    L = f.readline().split(';')
+    Ligne = []
+    for value in L:
+        Ligne.append(value)
+    M[Ligne[0]] = Ligne[1:]
+f.close()
+
+print(M)
