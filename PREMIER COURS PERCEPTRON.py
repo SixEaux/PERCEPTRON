@@ -3,7 +3,7 @@ class Perceptron:
         self.iter = iterations
         self.nb = nbneurones
         self.neurones = [None for i in range(nbneurones)]
-        self.poids = [255 for i in range(nbneurones)]
+        self.poids = [1 for i in range(nbneurones)]
         self.cvcoef = coefcv
         self.sup = sup
 
