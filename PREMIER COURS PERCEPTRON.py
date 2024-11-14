@@ -41,7 +41,8 @@ class Perceptron:
         for i in range(len(self.poids)):
             self.poids[i] = self.cvcoef * (attendu[i] - observation[i]) * input[i]
 
-    def changerbiais(self):
+
+    def changerbiais(self): #pas encore a faire
         pass
 
 
