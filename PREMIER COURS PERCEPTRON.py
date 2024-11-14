@@ -1,8 +1,14 @@
 import numpy as np
 
 
-class Image:
+class ImageReader():
     def __init__(self):
+        self.rng = np.random.default_rng()
+
+    def fakeImg(self, size):
+        image = self.rng.integers ( 0 ,  255 , size*size)
+        image.reshape((size,size))
+        return image
 
 
 
