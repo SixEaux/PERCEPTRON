@@ -14,6 +14,7 @@ class Perceptron:
         self.poids = [1 for i in range(nbneurones)]
         self.cvcoef = coefcv
         self.sup = sup
+        self.biais = 1
 
 
     def fctactiv(self, x):
@@ -33,6 +34,9 @@ class Perceptron:
         #si bomne reponse on garde les poids, si erreur pensant que c'est le chiffre attendu - reponse = -1 sinon inverse = 1
         for i in range(len(self.poids)):
             self.poids[i] = self.cvcoef * (attendu[i] - observation[i]) * input[i]
+
+    def changerbiais(self):
+        pass
 
 
     def prediction(self, input):
