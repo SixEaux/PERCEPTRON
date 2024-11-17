@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98bdf804-36e8-4382-b59a-8d567360b277" name="Changes" comment="LETS DO IT">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" beforeDir="false" afterPath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" afterDir="false" />
-    </list>
+    <list default="true" id="98bdf804-36e8-4382-b59a-8d567360b277" name="Changes" comment="Y" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -29,12 +26,12 @@
     &quot;assignee&quot;: &quot;SixEaux&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/SixEaux/PERCEPTRON.git",
-    "accountId": "ec487ee2-1035-4f8e-ac38-0e4dd20bb2ae"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/SixEaux/PERCEPTRON.git&quot;,
+    &quot;accountId&quot;: &quot;ec487ee2-1035-4f8e-ac38-0e4dd20bb2ae&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 3
 }</component>
@@ -44,25 +41,26 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.PREMIER COURS PERCEPTRON.executor": "Run",
-    "Python.Percep.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.PREMIER COURS PERCEPTRON.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Percep.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-PY-242.23726.102" />
-        <option value="bundled-python-sdk-5e1850174b45-399fe30bd8c1-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-242.23726.102" />
+        <option value="bundled-js-predefined-d6986cc7102b-e768b9ed790e-JavaScript-PY-243.21565.199" />
+        <option value="bundled-python-sdk-cab1f2013843-4ae2d6a61b08-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.21565.199" />
       </set>
     </attachedChunks>
   </component>
@@ -76,7 +74,11 @@
       <updated>1730974731113</updated>
       <workItem from="1730974734714" duration="4051000" />
       <workItem from="1731542732057" duration="4582000" />
-      <workItem from="1731580621827" duration="2308000" />
+      <workItem from="1731580621827" duration="2809000" />
+      <workItem from="1731607371895" duration="4549000" />
+      <workItem from="1731654535863" duration="75000" />
+      <workItem from="1731801499644" duration="127000" />
+      <workItem from="1731801786603" duration="2046000" />
     </task>
     <task id="LOCAL-00001" summary="LETS DO IT">
       <option name="closed" value="true" />
@@ -158,7 +160,87 @@
       <option name="project" value="LOCAL" />
       <updated>1731580593927</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="LETS DO IT">
+      <option name="closed" value="true" />
+      <created>1731583254061</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1731583254061</updated>
+    </task>
+    <task id="LOCAL-00012" summary="LETS DO IT">
+      <option name="closed" value="true" />
+      <created>1731584991609</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1731584991609</updated>
+    </task>
+    <task id="LOCAL-00013" summary="LETS DO IT">
+      <option name="closed" value="true" />
+      <created>1731611382984</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1731611382984</updated>
+    </task>
+    <task id="LOCAL-00014" summary="LETS DO IT">
+      <option name="closed" value="true" />
+      <created>1731611859604</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1731611859604</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Y">
+      <option name="closed" value="true" />
+      <created>1731613184619</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1731613184619</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Y">
+      <option name="closed" value="true" />
+      <created>1731801837145</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1731801837145</updated>
+    </task>
+    <task id="LOCAL-00017" summary="Y">
+      <option name="closed" value="true" />
+      <created>1731802706668</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1731802706668</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Y">
+      <option name="closed" value="true" />
+      <created>1731802958174</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1731802958174</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Y">
+      <option name="closed" value="true" />
+      <created>1731803008854</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1731803008854</updated>
+    </task>
+    <task id="LOCAL-00020" summary="Y">
+      <option name="closed" value="true" />
+      <created>1731803722901</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1731803722901</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -169,7 +251,19 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="master" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
           </value>
         </entry>
       </map>
@@ -177,9 +271,10 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="LETS DO IT" />
-    <option name="LAST_COMMIT_MESSAGE" value="LETS DO IT" />
+    <MESSAGE value="Y" />
+    <option name="LAST_COMMIT_MESSAGE" value="Y" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/PERCEPTRON$PREMIER_COURS_PERCEPTRON.coverage" NAME="PREMIER COURS PERCEPTRON Coverage Results" MODIFIED="1731582128721" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PERCEPTRON$PREMIER_COURS_PERCEPTRON.coverage" NAME="PREMIER COURS PERCEPTRON Coverage Results" MODIFIED="1731611808941" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

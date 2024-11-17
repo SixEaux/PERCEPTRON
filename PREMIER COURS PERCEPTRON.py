@@ -1,4 +1,12 @@
 import numpy as np
+import pickle
+
+
+with open('valeursentraine', 'rb') as f:
+    valeurs = pickle.load(f)
+
+with open('pixelsentraine', 'rb') as f:
+    pixels = pickle.load(f)
 
 
 class ImageReader():
@@ -38,12 +46,10 @@ class Perceptron:
 
     def changerpoids(self, attendu, observation, input):
         #si bomne reponse on garde les poids, si erreur pensant que c'est le chiffre attendu - reponse = -1 sinon inverse = 1
-        for i in range(len(self.poids)):
+        for i in range(1, len(self.poids)):
             self.poids[i] = self.cvcoef * (attendu[i] - observation[i]) * input[i]
+        # self.biais += self.cvcoef * (attendu[-1] - observation[-1]) il faut voir comment le changer
 
-
-    def changerbiais(self): #pas encore a faire
-        pass
 
 
     def prediction(self, input):
@@ -53,14 +59,3 @@ class Perceptron:
 
 
 
-f = open("mnist_train.csv", "r")
-M = {}
-for i in range(100):
-    L = f.readline().split(';')
-    Ligne = []
-    for value in L:
-        Ligne.append(value)
-    M[Ligne[0]] = Ligne[1:]
-f.close()
-
-print(M)
