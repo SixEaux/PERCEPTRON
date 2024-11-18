@@ -1,6 +1,5 @@
 import numpy as np
 import pickle
-import pprint
 import random
 
 
@@ -35,6 +34,10 @@ class Perceptron:
         self.biais = 1
         self.pix = pix
         self.vales = vales
+
+    def printlistpix(self, lista):
+        for i in range(0, len(lista), 28):
+            print(lista[i:i+28])
 
     def fctactiv(self, x):
         if x>self.seuil:
@@ -88,9 +91,9 @@ class Perceptron:
 
 P = Perceptron(784, pixels, valeurs)
 
-print(P.poids)
+P.printlistpix(P.poids)
 P.entrainementuns()
-print(P.poids)
+P.printlistpix(P.poids)
 
 print(P.tauxerreur())
 
