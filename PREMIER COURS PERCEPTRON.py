@@ -1,7 +1,8 @@
 import numpy as np
 import pickle
 import random
-
+from tabulate import tabulate
+import pandas as pd
 
 with open('valeursentraine', 'rb') as f:
     valeurs = pickle.load(f)
@@ -12,7 +13,7 @@ with open('pixelsentraine', 'rb') as f:
 # print(len(pixels[0]))
 # print(len(pixels))
 
-class ImageReader():
+class ImageReader:
     def __init__(self):
         self.rng = np.random.default_rng()
 
@@ -28,7 +29,7 @@ class Perceptron:
     def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0):
         self.iter = iterations
         self.nb = nbneurones
-        self.poids = [1 for _ in range(nbneurones)]
+        self.poids = [random.randint(0, 1000) for _ in range(nbneurones)]
         self.cvcoef = coefcv
         self.seuil = seuil
         self.biais = 1
@@ -36,8 +37,25 @@ class Perceptron:
         self.vales = vales
 
     def printlistpix(self, lista):
-        for i in range(0, len(lista), 28):
-            print(lista[i:i+28])
+        lise = [int(i) for i in lista]
+        if len(lise) == 784:
+            for i in range(0, len(lise), 28):
+                print(lise[i:i+28])
+        elif len(lise) == 785:
+            print("Biais : ", lise[0])
+            for i in range(1,len(lise), 28):
+                print(lise[i:i + 28])
+
+    def autreprint(self, lista):
+        df = np.array(lista, copy = True).reshape((28, 28))
+        fat = pd.DataFrame(df, copy = True)
+        with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+            print(fat)
+
+    def autreautreprint(self, lista):
+        df = np.array(lista, copy=True).reshape((28, 28))
+        print(tabulate(list(df)))
+
 
     def fctactiv(self, x):
         if x>self.seuil:
@@ -75,10 +93,10 @@ class Perceptron:
         activ = self.fctactiv(attendu)
         return 1 if activ == 1 else 0
 
-    def entrainementuns(self):#erreur de penser
+    def entrainementun(self, recherch):#erreur de penser
         for fig in range(len(self.pix)):
             pred = self.prediction(self.pix[fig])
-            self.changerpoids(self.vraivaleur(1, self.vales[fig]), pred, self.pix[fig])
+            self.changerpoids(self.vraivaleur(recherch, self.vales[fig]), pred, self.pix[fig])
 
     def tauxerreur(self):
         correct = 0
@@ -91,9 +109,10 @@ class Perceptron:
 
 P = Perceptron(784, pixels, valeurs)
 
-P.printlistpix(P.poids)
-P.entrainementuns()
-P.printlistpix(P.poids)
+
+P.autreautreprint(P.poids)
+P.entrainementun(1)
+P.autreautreprint(P.poids)
 
 print(P.tauxerreur())
 
