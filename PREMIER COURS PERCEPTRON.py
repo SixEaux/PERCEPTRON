@@ -29,7 +29,7 @@ class Perceptron:
     def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0):
         self.iter = iterations
         self.nb = nbneurones
-        self.poids = [random.randint(0, 1000) for _ in range(nbneurones)]
+        self.poids = [random.randint(0, 100000) for _ in range(nbneurones)]
         self.cvcoef = coefcv
         self.seuil = seuil
         self.biais = 1
@@ -98,21 +98,19 @@ class Perceptron:
             pred = self.prediction(self.pix[fig])
             self.changerpoids(self.vraivaleur(recherch, self.vales[fig]), pred, self.pix[fig])
 
-    def tauxerreur(self):
+    def tauxerreur(self, recherch):
         correct = 0
         for i in range(len(self.pix)):
             predator = self.prediction(self.pix[i])
-            if predator == self.vraivaleur(1, self.vales[i]):
+            if predator == self.vraivaleur(recherch, self.vales[i]):
                 correct += 1
         return 100 - correct*100/len(self.pix)
 
 
 P = Perceptron(784, pixels, valeurs)
 
-
-P.autreautreprint(P.poids)
-P.entrainementun(1)
+P.entrainementun(8)
 P.autreautreprint(P.poids)
 
-print(P.tauxerreur())
+print(P.tauxerreur(8))
 
