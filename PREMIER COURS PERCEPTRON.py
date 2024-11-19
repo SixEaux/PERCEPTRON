@@ -9,9 +9,11 @@ with open('valeursentraine', 'rb') as f:
 
 with open('pixelsentraine', 'rb') as f:
     pixels = pickle.load(f)
-# print(pixels[0])
-# print(len(pixels[0]))
-# print(len(pixels))
+
+nouveau = [(pixels[i],valeurs[i]) for i in range(len(pixels)) if (valeurs[i]==1 or valeurs[i] == 2)]
+pixnouv = [nouveau[i][0] for i in range(len(nouveau))]
+valnouv = [nouveau[i][1] for i in range(len(nouveau))]
+
 
 class ImageReader:
     def __init__(self):
@@ -29,7 +31,7 @@ class Perceptron:
     def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0):
         self.iter = iterations
         self.nb = nbneurones
-        self.poids = [random.randint(0, 1000) for _ in range(nbneurones)]
+        self.poids = [random.randint(0, 100000) for _ in range(nbneurones)]
         self.cvcoef = coefcv
         self.seuil = seuil
         self.biais = 1
@@ -107,13 +109,13 @@ class Perceptron:
         return 100 - correct*100/len(self.pix)
 
 
-P = Perceptron(784, pixels, valeurs)
+P = Perceptron(784, pixnouv, valnouv, coefcv = 0.2, seuil = 0)
 
-# P.entrainementun(7)
-# P.autreautreprint(P.poids)
+P.entrainementun(2)
+P.autreautreprint(P.poids)
 
-# print(P.tauxerreur(7))
+print(P.tauxerreur(2))
 
-P.autreautreprint(P.pix[100])
-print(P.vales[100])
 
+
+00
