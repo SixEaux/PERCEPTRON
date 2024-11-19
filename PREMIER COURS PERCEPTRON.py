@@ -29,7 +29,7 @@ class Perceptron:
     def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0):
         self.iter = iterations
         self.nb = nbneurones
-        self.poids = [random.randint(0, 10000000) for _ in range(nbneurones)]
+        self.poids = [random.randint(0, 1000) for _ in range(nbneurones)]
         self.cvcoef = coefcv
         self.seuil = seuil
         self.biais = 1
@@ -81,7 +81,7 @@ class Perceptron:
         self.poids[0] += self.cvcoef * (attendu - observation)
 
 
-    def vraivaleur(self, recherchee, valeur):
+    def validation(self, recherchee, valeur):
         return 1 if recherchee == valeur else 0
 
     def vraiinput(self, input):
@@ -96,21 +96,24 @@ class Perceptron:
     def entrainementun(self, recherch):#erreur de penser
         for fig in range(len(self.pix)):
             pred = self.prediction(self.pix[fig])
-            self.changerpoids(self.vraivaleur(recherch, self.vales[fig]), pred, self.pix[fig])
+            self.changerpoids(self.validation(recherch, self.vales[fig]), pred, self.pix[fig])
 
     def tauxerreur(self, recherch):
         correct = 0
         for i in range(len(self.pix)):
             predator = self.prediction(self.pix[i])
-            if predator == self.vraivaleur(recherch, self.vales[i]):
+            if predator == self.validation(recherch, self.vales[i]):
                 correct += 1
         return 100 - correct*100/len(self.pix)
 
 
 P = Perceptron(784, pixels, valeurs)
 
-P.entrainementun(2)
-P.autreautreprint(P.poids)
+# P.entrainementun(7)
+# P.autreautreprint(P.poids)
 
-print(P.tauxerreur(2))
+# print(P.tauxerreur(7))
+
+P.autreautreprint(P.pix[100])
+print(P.vales[100])
 

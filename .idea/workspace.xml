@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="98bdf804-36e8-4382-b59a-8d567360b277" name="Changes" comment="Y">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" beforeDir="false" afterPath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,6 +90,7 @@
       <workItem from="1731926577131" duration="14000" />
       <workItem from="1731938594795" duration="289000" />
       <workItem from="1731952774161" duration="7991000" />
+      <workItem from="1732002418538" duration="785000" />
     </task>
     <task id="LOCAL-00001" summary="LETS DO IT">
       <option name="closed" value="true" />
@@ -323,7 +324,15 @@
       <option name="project" value="LOCAL" />
       <updated>1731971168210</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="Y">
+      <option name="closed" value="true" />
+      <created>1732002695845</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1732002695845</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -358,6 +367,6 @@
     <option name="LAST_COMMIT_MESSAGE" value="Y" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/PERCEPTRON$PREMIER_COURS_PERCEPTRON.coverage" NAME="PREMIER COURS PERCEPTRON Coverage Results" MODIFIED="1731971126929" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PERCEPTRON$PREMIER_COURS_PERCEPTRON.coverage" NAME="PREMIER COURS PERCEPTRON Coverage Results" MODIFIED="1732003305377" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
