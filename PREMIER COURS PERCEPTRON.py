@@ -116,6 +116,3 @@ P.autreautreprint(P.poids)
 
 print(P.tauxerreur(2))
 
-
-
-00
