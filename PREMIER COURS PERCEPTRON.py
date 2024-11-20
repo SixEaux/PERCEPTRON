@@ -10,7 +10,7 @@ with open('valeursentraine', 'rb') as f:
 with open('pixelsentraine', 'rb') as f:
     pixels = pickle.load(f)
 
-nouveau = [(pixels[i],valeurs[i]) for i in range(len(pixels)) if (valeurs[i]==1 or valeurs[i] == 2)]
+nouveau = [(pixels[i],valeurs[i]) for i in range(len(pixels)) if (valeurs[i]==4 or valeurs[i] == 5)]
 pixnouv = [nouveau[i][0] for i in range(len(nouveau))]
 valnouv = [nouveau[i][1] for i in range(len(nouveau))]
 
@@ -109,11 +109,10 @@ class Perceptron:
         return 100 - correct*100/len(self.pix)
 
 
-P = Perceptron(784, pixnouv, valnouv, coefcv = 0.1, seuil = 0)
+P = Perceptron(784, pixnouv, valnouv, coefcv = 0.2, seuil = 0)
 
-P.entrainementun(2)
-P.entrainementun(2)
+P.entrainementun(4)
 P.autreautreprint(P.poids)
 
-print(P.tauxerreur(2))
+print(P.tauxerreur(4))
 
