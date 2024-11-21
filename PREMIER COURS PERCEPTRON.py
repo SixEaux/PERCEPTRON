@@ -10,9 +10,6 @@ with open('valeursentraine', 'rb') as f:
 with open('pixelsentraine', 'rb') as f:
     pixels = pickle.load(f)
 
-nouveau = [(pixels[i],valeurs[i]) for i in range(len(pixels)) if (valeurs[i]==4 or valeurs[i] == 5)]
-pixnouv = [nouveau[i][0] for i in range(len(nouveau))]
-valnouv = [nouveau[i][1] for i in range(len(nouveau))]
 
 
 class ImageReader:
@@ -25,13 +22,11 @@ class ImageReader:
         return image
 
 
-
-
 class Perceptron:
     def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0, test=None):
         self.iter = iterations
         self.nb = nbneurones
-        self.poids = [random.randint(110000, 1000000) for _ in range(nbneurones)]
+        self.poids = [1 for _ in range(nbneurones)]
         self.cvcoef = coefcv
         self.seuil = seuil
         self.biais = 1
@@ -79,7 +74,7 @@ class Perceptron:
         #si bonne reponse on garde les poids, si erreur pensant que c'est le chiffre attendu - reponse = -1 sinon inverse = 1
         vrainput = self.vraiinput(input)
         for i in range(1, len(self.poids)):
-            self.poids[i] = self.cvcoef * (attendu - observation) * vrainput[i]
+            self.poids[i] += self.cvcoef * (attendu - observation) * vrainput[i]
         self.poids[0] += self.cvcoef * (attendu - observation)
 
 
@@ -109,10 +104,13 @@ class Perceptron:
         return 100 - correct*100/len(self.pix)
 
 
-P = Perceptron(784, pixnouv, valnouv, coefcv = 0.2, seuil = 0)
+P = Perceptron(784, pixels, valeurs, coefcv = 0.9, seuil = 0)
 
-P.entrainementun(4)
+# P.autreautreprint(pixels[14])
+# print(valeurs[14])
+
+P.entrainementun(0)
 P.autreautreprint(P.poids)
 
-print(P.tauxerreur(4))
+print(P.tauxerreur(0))
 
