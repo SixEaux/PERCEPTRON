@@ -3,7 +3,7 @@ import pickle
 import random
 from tabulate import tabulate
 import pandas as pd
-from stringcolor import *
+from colorama import Fore
 
 with open('valeursentraine', 'rb') as f:
     valeurs = pickle.load(f)
@@ -38,7 +38,7 @@ class Perceptron:
         self.pix = pix
         self.vales = vales
         if normal:
-            self.normaliserbase()
+            self.normaliserbase(self.pix)
 
     def normaliserbase(self, base):
         p = [i/255 for i in base]
@@ -51,7 +51,7 @@ class Perceptron:
 
     def autreautreautreprint(self, lista):
         df = np.array(lista, copy=True).reshape((28, 28))
-        df2 = np.where(df>10, "\033[1;32;40m 9", 0)
+        df2 = np.where(df>10, 9, 0)
         print(tabulate(list(df2)))
 
 
