@@ -3,6 +3,7 @@ import pickle
 import random
 from tabulate import tabulate
 import pandas as pd
+from stringcolor import *
 
 with open('valeursentraine', 'rb') as f:
     valeurs = pickle.load(f)
@@ -27,7 +28,7 @@ class ImageReader:
 
 
 class Perceptron:
-    def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0, normal = False, test=None):
+    def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0, normal = False):
         self.iter = iterations
         self.nb = nbneurones
         self.poids = [1 for _ in range(nbneurones)]
@@ -39,29 +40,19 @@ class Perceptron:
         if normal:
             self.normaliserbase()
 
-    def normaliserbase(self):
-        p = [i/255 for i in self.pix]
-        self.pix = p
-
-    def printlistpix(self, lista):
-        lise = [int(i) for i in lista]
-        if len(lise) == 784:
-            for i in range(0, len(lise), 28):
-                print(lise[i:i+28])
-        elif len(lise) == 785:
-            print("Biais : ", lise[0])
-            for i in range(1,len(lise), 28):
-                print(lise[i:i + 28])
-
-    def autreprint(self, lista):
-        df = np.array(lista, copy = True).reshape((28, 28))
-        fat = pd.DataFrame(df, copy = True)
-        with pd.option_context('display.max_rows', None, 'display.max_columns', None):
-            print(fat)
+    def normaliserbase(self, base):
+        p = [i/255 for i in base]
+        base = p
 
     def autreautreprint(self, lista):
         df = np.array(lista, copy=True).reshape((28, 28))
         print(tabulate(list(df)))
+
+
+    def autreautreautreprint(self, lista):
+        df = np.array(lista, copy=True).reshape((28, 28))
+        df2 = np.where(df>10, "\033[1;32;40m 9", 0)
+        print(tabulate(list(df2)))
 
 
     def fctactiv(self, x):
@@ -80,6 +71,12 @@ class Perceptron:
             print("oh non erreur", tab1,"\n", tab2)
             return
 
+
+    def vraiinput(self, input):
+
+        return [self.biais] + input
+
+
     def changerpoids(self, attendu, observation, input):
         #si bonne reponse on garde les poids, si erreur pensant que c'est le chiffre attendu - reponse = -1 sinon inverse = 1
         vrainput = self.vraiinput(input)
@@ -91,8 +88,6 @@ class Perceptron:
     def validation(self, recherchee, valeur):
         return 1 if recherchee == valeur else 0
 
-    def vraiinput(self, input):
-        return [self.biais] + input
 
     def prediction(self, input):
         vrainput = self.vraiinput(input)
@@ -100,24 +95,26 @@ class Perceptron:
         activ = self.fctactiv(attendu)
         return 1 if activ == 1 else 0
 
+
     def entrainementun(self, recherch):#erreur de penser
         for fig in range(len(self.pix)):
             pred = self.prediction(self.pix[fig])
             self.changerpoids(self.validation(recherch, self.vales[fig]), pred, self.pix[fig])
 
-    def tauxerreur(self, recherch, base):
+
+    def tauxerreur(self, recherch, basepix, baseval):
         correct = 0
-        for i in range(len(self.pix)):
-            predator = self.prediction(self.pix[i])
-            if predator == self.validation(recherch, self.vales[i]):
+        for i in range(len(basepix)):
+            predator = self.prediction(basepix[i])
+            if predator == self.validation(recherch, baseval[i]):
                 correct += 1
-        return 100 - correct*100/len(self.pix)
+        return 100 - correct*100/len(basepix)
 
 
-P = Perceptron(784, pixels, valeurs, coefcv = 0.9, seuil = 0)
+P = Perceptron(784, pixels, valeurs, coefcv = 0.01, seuil = 0)
 
-P.entrainementun(0)
-P.autreautreprint(P.poids)
+P.entrainementun(9)
+P.autreautreautreprint(P.poids)
 
-print(P.tauxerreur(0))
+print(P.tauxerreur(9, qcmpix, qcmval))
 
