@@ -2,8 +2,7 @@ import numpy as np
 import pickle
 import random
 from tabulate import tabulate
-import pandas as pd
-from colorama import Fore
+import matplotlib.pyplot as plt
 
 with open('valeursentraine', 'rb') as f:
     valeurs = pickle.load(f)
@@ -51,8 +50,11 @@ class Perceptron:
 
     def autreautreautreprint(self, lista):
         df = np.array(lista, copy=True).reshape((28, 28))
-        df2 = np.where(df>10, 9, 0)
-        print(tabulate(list(df2)))
+        df2 = np.where(df>5, 9, 0)
+        plt.imshow(df2, cmap='Dark2', interpolation='nearest')
+        plt.colorbar(label='Value')
+        plt.title("Array Visualization")
+        plt.show()
 
 
     def fctactiv(self, x):
@@ -113,8 +115,8 @@ class Perceptron:
 
 P = Perceptron(784, pixels, valeurs, coefcv = 0.01, seuil = 0)
 
-P.entrainementun(9)
+P.entrainementun(0)
 P.autreautreautreprint(P.poids)
 
-print(P.tauxerreur(9, qcmpix, qcmval))
+print(P.tauxerreur(0, qcmpix, qcmval))
 
