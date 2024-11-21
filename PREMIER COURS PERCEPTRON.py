@@ -50,7 +50,7 @@ class Perceptron:
 
     def autreautreautreprint(self, lista):
         df = np.array(lista, copy=True).reshape((28, 28))
-        df2 = np.where(df>5, 9, 0)
+        df2 = np.where(df>5, 1, 0)
         plt.imshow(df2, cmap='Dark2', interpolation='nearest')
         plt.colorbar(label='Value')
         plt.title("Array Visualization")
@@ -113,7 +113,7 @@ class Perceptron:
         return 100 - correct*100/len(basepix)
 
 
-P = Perceptron(784, pixels, valeurs, coefcv = 0.01, seuil = 0)
+P = Perceptron(784, pixels, valeurs, coefcv = 0.05, seuil = 0)
 
 P.entrainementun(0)
 P.autreautreautreprint(P.poids)
