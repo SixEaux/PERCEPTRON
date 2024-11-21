@@ -10,7 +10,11 @@ with open('valeursentraine', 'rb') as f:
 with open('pixelsentraine', 'rb') as f:
     pixels = pickle.load(f)
 
+with open('testval', 'rb') as f:
+    qcmval = pickle.load(f)
 
+with open('testpix', 'rb') as f:
+    qcmpix = pickle.load(f)
 
 class ImageReader:
     def __init__(self):
@@ -23,7 +27,7 @@ class ImageReader:
 
 
 class Perceptron:
-    def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0, test=None):
+    def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0, normal = False, test=None):
         self.iter = iterations
         self.nb = nbneurones
         self.poids = [1 for _ in range(nbneurones)]
@@ -32,6 +36,12 @@ class Perceptron:
         self.biais = 1
         self.pix = pix
         self.vales = vales
+        if normal:
+            self.normaliserbase()
+
+    def normaliserbase(self):
+        p = [i/255 for i in self.pix]
+        self.pix = p
 
     def printlistpix(self, lista):
         lise = [int(i) for i in lista]
@@ -95,7 +105,7 @@ class Perceptron:
             pred = self.prediction(self.pix[fig])
             self.changerpoids(self.validation(recherch, self.vales[fig]), pred, self.pix[fig])
 
-    def tauxerreur(self, recherch):
+    def tauxerreur(self, recherch, base):
         correct = 0
         for i in range(len(self.pix)):
             predator = self.prediction(self.pix[i])
@@ -105,9 +115,6 @@ class Perceptron:
 
 
 P = Perceptron(784, pixels, valeurs, coefcv = 0.9, seuil = 0)
-
-# P.autreautreprint(pixels[14])
-# print(valeurs[14])
 
 P.entrainementun(0)
 P.autreautreprint(P.poids)
