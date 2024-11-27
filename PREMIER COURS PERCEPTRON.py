@@ -115,8 +115,8 @@ class Perceptron:
 
 P = Perceptron(784, pixels, valeurs, coefcv = 0.05, seuil = 0)
 
-P.entrainementun(0)
+P.entrainementun(7)
 P.autreautreautreprint(P.poids)
 
-print(P.tauxerreur(0, qcmpix, qcmval))
+print(P.tauxerreur(7, qcmpix, qcmval))
 
