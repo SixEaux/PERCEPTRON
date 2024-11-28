@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 
 with open('valeursentraine', 'rb') as f:
     valeurs = pickle.load(f)
+    vali = valeurs[:10000]
 
 with open('pixelsentraine', 'rb') as f:
     pixels = pickle.load(f)
+    pixi = pixels[:10000]
 
 with open('testval', 'rb') as f:
     qcmval = pickle.load(f)
@@ -40,8 +42,8 @@ class Perceptron:
             self.normaliserbase(self.pix)
 
     def normaliserbase(self, base):
-        p = [i/255 for i in base]
-        base = p
+        p = [[j/255 for j in i] for i in base]
+
 
     def autreautreprint(self, lista):
         df = np.array(lista, copy=True).reshape((28, 28))
@@ -113,10 +115,10 @@ class Perceptron:
         return 100 - correct*100/len(basepix)
 
 
-P = Perceptron(784, pixels, valeurs, coefcv = 0.05, seuil = 0)
+P = Perceptron(784, pixi, vali, coefcv = 0.1, seuil = 0, normal=False)
 
-P.entrainementun(7)
+P.entrainementun(8)
 P.autreautreautreprint(P.poids)
 
-print(P.tauxerreur(7, qcmpix, qcmval))
+print(P.tauxerreur(8, qcmpix, qcmval))
 

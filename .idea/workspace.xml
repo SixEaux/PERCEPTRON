@@ -101,6 +101,9 @@
       <workItem from="1732285783814" duration="1378000" />
       <workItem from="1732448942221" duration="31000" />
       <workItem from="1732750902455" duration="344000" />
+      <workItem from="1732783233733" duration="158000" />
+      <workItem from="1732788440830" duration="1512000" />
+      <workItem from="1732790548469" duration="254000" />
     </task>
     <task id="LOCAL-00001" summary="LETS DO IT">
       <option name="closed" value="true" />
@@ -465,7 +468,7 @@
     <option name="LAST_COMMIT_MESSAGE" value="Y" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/PERCEPTRON$PREMIER_COURS_PERCEPTRON.coverage" NAME="PREMIER COURS PERCEPTRON Coverage Results" MODIFIED="1732750923674" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PERCEPTRON$PREMIER_COURS_PERCEPTRON.coverage" NAME="PREMIER COURS PERCEPTRON Coverage Results" MODIFIED="1732790780484" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PERCEPTRON$trucs_importants_perceptron.coverage" NAME="trucs importants perceptron Coverage Results" MODIFIED="1732186234001" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
