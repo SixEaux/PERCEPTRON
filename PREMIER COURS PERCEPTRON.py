@@ -40,6 +40,7 @@ class Perceptron:
         self.vales = vales
         if normal:
             self.normaliserbase(self.pix)
+        print(self.pix[0])
 
     def normaliserbase(self, base):
         p = [[j/255 for j in i] for i in base]
