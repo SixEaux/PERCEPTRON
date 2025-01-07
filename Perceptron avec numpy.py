@@ -14,14 +14,18 @@ with open('pixelsentraine', 'rb') as f:
 
 with open('testval', 'rb') as f:
     qcmval = np.array(pickle.load(f))
+    petitqcmval = np.array(qcmval[2000:2500])
 
 with open('testpix', 'rb') as f:
     qcmpix = np.array(pickle.load(f))
+    petitqcmpix = np.array(qcmpix[2000:2500])
+
+print(np.unique(petitqcmval, return_counts=True))
 
 class Perceptron:
-    def __init__(self, pix, vales, *, nbneurones = 784, coefcv = 0.1, iterations=1000, seuil = 0, normal = False,
+    def __init__(self, pix, vales, *, nbneurones = 784, coefcv = 0.1, iterations=10, seuil = 0, normal = False,
                  bruitgaussien = False, pourcecarttype = 0,
-                 bruitsurpix = False, nbpixelsbruit = 0, positionschoisies = False):
+                 bruitsurpix = False, nbpixelsbruit = 0, positionschoisies = False, saturation = True):
 
         self.iter = iterations #nombre iteration entrainement
         self.nb = nbneurones #nombre de neurones
@@ -45,6 +49,7 @@ class Perceptron:
 
         #BRUIT PAR PIXELS
         self.boolbruitpix = bruitsurpix
+        self.saturation = saturation
         self.choisies = positionschoisies
         self.nbbruit = nbpixelsbruit
 
@@ -68,7 +73,7 @@ class Perceptron:
                 print(posbruits)
             except:
                 print("Ce n'est pas le format correct donc pas de bruit")
-                posbruits = []
+                return image
         else:
             posbruits = random.sample(range(0, 783), self.nbbruit)
 
@@ -106,10 +111,11 @@ class Perceptron:
     def prediction(self, input):
         return self.fctactivescalier(self.produit(self.poids, self.vraiinput(input)))
 
-    def entrainementun(self, recherch):
-        for fig in range(len(self.pix)):
-            pred = self.prediction(self.pix[fig])
-            self.changerpoids(self.validation(recherch, self.vales[fig]), pred, self.pix[fig])
+    def entrainement(self, recherch):
+        for n in range(self.iter):
+            for fig in range(len(self.pix)):
+                pred = self.prediction(self.pix[fig])
+                self.changerpoids(self.validation(recherch, self.vales[fig]), pred, self.pix[fig])
 
     def tauxerreur(self, recherch, basepix, baseval):
         if not self.normal:
@@ -124,6 +130,8 @@ class Perceptron:
             for i in range(len(basepix)):
                 if self.boolbruitgaus:
                     predator = self.prediction(self.bruitgaussien(basepix[i]))
+                elif self.boolbruitpix:
+                    predator = self.prediction(self.bruitpixels(basepix[i], self.normal, self.saturation))
                 else:
                     predator = self.prediction(basepix[i])
                 correct += 1 if predator == self.validation(recherch, baseval[i]) else 0
@@ -140,14 +148,14 @@ class Perceptron:
 
 
 
-P = Perceptron(pixels, valeurs, coefcv = 0.2, seuil = 0, normal=True,
-               bruitgaussien = False, pourcecarttype = 5,
-               bruitsurpix = False, nbpixelsbruit = 765, positionschoisies = True)
+P = Perceptron(pixels, valeurs, coefcv = 0.2, seuil = 0, normal=True, iterations = 1,
+               bruitgaussien = True, pourcecarttype = 30,
+               bruitsurpix = False, nbpixelsbruit = 100, positionschoisies = False, saturation = True)
 
-P.entrainementun(0)
+P.entrainement(0)
 
-im = P.bruitpixels(qcmpix[3], False, True)
+# im = P.bruitpixels(qcmpix[3], False, True)
 
-P.testuneimage(im, 0)
+# P.testuneimage(im, 0)
 
-# print(P.tauxerreur(0, qcmpix, qcmval))
+print(P.tauxerreur(0, qcmpix, qcmval))
