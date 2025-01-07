@@ -76,10 +76,13 @@ class Perceptron:
 
     def printcouleur(self, base):
         df2 = base[1:].reshape((28,28))
-        plt.imshow(df2, cmap='Dark2', interpolation='nearest')
+        plt.imshow(df2, cmap='Greys', interpolation='nearest')
         plt.colorbar(label='Value')
         plt.title("Array Visualization")
         plt.show()
+
+    def printblancetnoir(self, base):
+        df2 = base[1:].reshape((28, 28))
 
     def fctactivescalier(self, x):
         return 1 if x>self.seuil else 0
@@ -123,9 +126,22 @@ class Perceptron:
                 correct += 1 if predator == self.validation(recherch, baseval[i]) else 0
             return 100 - correct * 100 / len(basepix)
 
+    def testuneimage(self, image, recherch):
+        self.printcouleur(self.vraiinput(image))
+        self.printcouleur(self.poids)
+        predator = self.prediction(image)
+        if predator == 1:
+            print(f"À mon avis ce chiffre est un {recherch}")
+        else:
+            print(f"À mon avis ce chiffre ne ressemble point à un {recherch}")
+
+
+
 P = Perceptron(784, pixels, valeurs, coefcv = 0.2, seuil = 0, normal=True)
 
 P.entrainementun(0)
-P.printbasesimple(P.poids)
+# P.printcouleur(P.poids)
 
-print(P.tauxerreur(0, qcmpix, qcmval))
+P.testuneimage(qcmpix[40], 0)
+
+# print(P.tauxerreur(0, qcmpix, qcmval))
