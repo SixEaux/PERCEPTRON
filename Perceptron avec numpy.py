@@ -19,33 +19,34 @@ with open('testpix', 'rb') as f:
     qcmpix = np.array(pickle.load(f))
 
 class Perceptron:
-    def __init__(self, nbneurones, pix, vales, *, coefcv = 0.1, iterations=1000, seuil = 0, normal = False,
+    def __init__(self, pix, vales, *, nbneurones = 784, coefcv = 0.1, iterations=1000, seuil = 0, normal = False,
                  bruitgaussien = False, pourcecarttype = 0,
-                 bruitsurpix = False, nbpixelsbruit = 0, positionschoisies = False, minmaxchangementpix = (0, 0)):
+                 bruitsurpix = False, nbpixelsbruit = 0, positionschoisies = False):
 
-        self.iter = iterations
-        self.nb = nbneurones
+        self.iter = iterations #nombre iteration entrainement
+        self.nb = nbneurones #nombre de neurones
 
+        #INITIALISATION VARIABLES
         self.poids = np.ones(nbneurones + 1) #np.random.randn(nbneurones + 1) * 0.01 #avec le biai qui est la premiere valeur
         self.cvcoef = coefcv
         self.seuil = seuil
         self.biais = 1
 
+        #INPUTS POUR ENTRAINEMENT
         self.pix = pix
         self.vales = vales
 
+
+        #BRUIT GAUSSIEN
         self.normal = normal
         self.boolbruitgaus = bruitgaussien
+        self.pix = self.normaliserbase(self.pix)
+        self.ecarttype = pourcecarttype / 100
 
-        if self.normal:
-            self.pix = self.normaliserbase(self.pix)
-            if bruitgaussien:
-                self.ecarttype = pourcecarttype / 100
-
-        if nbpixelsbruit > 0:
-            self.nbbruit = nbpixelsbruit
+        #BRUIT PAR PIXELS
+        self.boolbruitpix = bruitsurpix
         self.choisies = positionschoisies
-        self.changementpix = minmaxchangementpix
+        self.nbbruit = nbpixelsbruit
 
 
     def normaliserbase(self, base):
@@ -56,20 +57,25 @@ class Perceptron:
         imagebrouillee = np.clip(image + bruit, 0, 1) #je ne sais pas si nécessaire mais pour qu'il n'y ait pas de valeur au de la
         return imagebrouillee
 
-    def bruitpixels(self, image):
+    def bruitpixels(self, image, norm, saturation):
+        sat = (1,255) if saturation else (0,0)
         if self.choisies:
             try:
-                posbruits = list(input("Donnez moi une liste avec les positions (nombres entre 0 et 783) que vous voulez modifier: "))
+                posbruits = list(map(int,list(input(f"Donnez moi une liste avec les positions que vous voulez modifier \n"
+                                                    f" nombres entre 0 et 783 et separes par des virgules: ").split(","))))
                 if len(posbruits) > self.nbbruit:
                     posbruits = posbruits[:self.nbbruit]
+                print(posbruits)
             except:
-                print("Ce n'est pas une liste donc pas de bruit")
+                print("Ce n'est pas le format correct donc pas de bruit")
                 posbruits = []
         else:
-            posbruits = [np.random.randint(0,784) for i in range(self.nbbruit)]
+            posbruits = random.sample(range(0, 783), self.nbbruit)
 
         for el in posbruits:
-            image[el] += np.random.randint(self.changementpix[0], self.changementpix[1])
+            image[el] = sat[0] if norm else sat[1]
+
+        return image
 
     def printbasesimple(self, base):
         print(tabulate(base[1:].reshape((28,28))))
@@ -80,9 +86,6 @@ class Perceptron:
         plt.colorbar(label='Value')
         plt.title("Array Visualization")
         plt.show()
-
-    def printblancetnoir(self, base):
-        df2 = base[1:].reshape((28, 28))
 
     def fctactivescalier(self, x):
         return 1 if x>self.seuil else 0
@@ -127,8 +130,8 @@ class Perceptron:
             return 100 - correct * 100 / len(basepix)
 
     def testuneimage(self, image, recherch):
-        self.printcouleur(self.vraiinput(image))
         self.printcouleur(self.poids)
+        self.printcouleur(self.vraiinput(image))
         predator = self.prediction(image)
         if predator == 1:
             print(f"À mon avis ce chiffre est un {recherch}")
@@ -137,11 +140,14 @@ class Perceptron:
 
 
 
-P = Perceptron(784, pixels, valeurs, coefcv = 0.2, seuil = 0, normal=True)
+P = Perceptron(pixels, valeurs, coefcv = 0.2, seuil = 0, normal=True,
+               bruitgaussien = False, pourcecarttype = 5,
+               bruitsurpix = False, nbpixelsbruit = 765, positionschoisies = True)
 
 P.entrainementun(0)
-# P.printcouleur(P.poids)
 
-P.testuneimage(qcmpix[40], 0)
+im = P.bruitpixels(qcmpix[3], False, True)
+
+P.testuneimage(im, 0)
 
 # print(P.tauxerreur(0, qcmpix, qcmval))
