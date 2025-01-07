@@ -59,7 +59,7 @@ class Perceptron:
     def bruitpixels(self, image):
         if self.choisies:
             try:
-                posbruits = list(input("Donnez moi une liste avec les positions que vous voulez modifier: "))
+                posbruits = list(input("Donnez moi une liste avec les positions (nombres entre 0 et 783) que vous voulez modifier: "))
                 if len(posbruits) > self.nbbruit:
                     posbruits = posbruits[:self.nbbruit]
             except:
