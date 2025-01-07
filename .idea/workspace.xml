@@ -5,8 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="98bdf804-36e8-4382-b59a-8d567360b277" name="Changes" comment="Y">
+      <change afterPath="$PROJECT_DIR$/Perceptron avec numpy.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" beforeDir="false" afterPath="$PROJECT_DIR$/PREMIER COURS PERCEPTRON.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trucs importants perceptron.py" beforeDir="false" afterPath="$PROJECT_DIR$/trucs importants perceptron.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -16,8 +18,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Python Script" />
         <option value="Jupyter Notebook" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -49,6 +51,7 @@
   &quot;keyToString&quot;: {
     &quot;Python.PREMIER COURS PERCEPTRON.executor&quot;: &quot;Run&quot;,
     &quot;Python.Percep.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Perceptron avec numpy.executor&quot;: &quot;Run&quot;,
     &quot;Python.trucs importants perceptron.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
@@ -105,6 +108,12 @@
       <workItem from="1732788440830" duration="1512000" />
       <workItem from="1732790548469" duration="254000" />
       <workItem from="1732790815570" duration="1967000" />
+      <workItem from="1734196626374" duration="1706000" />
+      <workItem from="1734369611006" duration="1277000" />
+      <workItem from="1734526137336" duration="24000" />
+      <workItem from="1734946292253" duration="60000" />
+      <workItem from="1736088586289" duration="9812000" />
+      <workItem from="1736255771839" duration="2896000" />
     </task>
     <task id="LOCAL-00001" summary="LETS DO IT">
       <option name="closed" value="true" />
@@ -442,7 +451,15 @@
       <option name="project" value="LOCAL" />
       <updated>1732791669519</updated>
     </task>
-    <option name="localTasksCounter" value="43" />
+    <task id="LOCAL-00043" summary="Y">
+      <option name="closed" value="true" />
+      <created>1734339161030</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1734339161030</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -477,7 +494,8 @@
     <option name="LAST_COMMIT_MESSAGE" value="Y" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/PERCEPTRON$PREMIER_COURS_PERCEPTRON.coverage" NAME="PREMIER COURS PERCEPTRON Coverage Results" MODIFIED="1732792542102" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/PERCEPTRON$trucs_importants_perceptron.coverage" NAME="trucs importants perceptron Coverage Results" MODIFIED="1732186234001" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PERCEPTRON$PREMIER_COURS_PERCEPTRON.coverage" NAME="PREMIER COURS PERCEPTRON Coverage Results" MODIFIED="1736098041579" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PERCEPTRON$Perceptron_avec_numpy.coverage" NAME="Perceptron avec numpy Coverage Results" MODIFIED="1736257952338" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PERCEPTRON$trucs_importants_perceptron.coverage" NAME="trucs importants perceptron Coverage Results" MODIFIED="1736255978207" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
