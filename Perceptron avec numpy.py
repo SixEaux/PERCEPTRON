@@ -14,11 +14,11 @@ with open('pixelsentraine', 'rb') as f:
 
 with open('testval', 'rb') as f:
     qcmval = np.array(pickle.load(f))
-    petitqcmval = np.array(qcmval[2000:2500])
+    petitqcmval = np.array(qcmval[0:5000])
 
 with open('testpix', 'rb') as f:
     qcmpix = np.array(pickle.load(f))
-    petitqcmpix = np.array(qcmpix[2000:2500])
+    petitqcmpix = np.array(qcmpix[0:5000])
 
 class Perceptron:
     def __init__(self, pix, vales, *, nbneurones = 784, coefcv = 0.1, iterations=10, seuil = 0, normal = False, apprentissagedynamique = False,
@@ -85,11 +85,11 @@ class Perceptron:
     def printbasesimple(self, base):
         print(tabulate(base[1:].reshape((28,28))))
 
-    def printcouleur(self, base):
+    def printcouleur(self, base, titre):
         df2 = base[1:].reshape((28,28))
         plt.imshow(df2, cmap='Greys', interpolation='nearest')
         plt.colorbar(label='Value')
-        plt.title("Array Visualization")
+        plt.title(titre)
         plt.show()
 
     def fctactivescalier(self, x):
@@ -168,9 +168,9 @@ class color:
    saut = "\n"
    separer = "_____________________________________________________________________________________________________________________________________________________________"
 
-def testszero():
+def testszero(qcmp, qcmv):
     Reference = Perceptron(pixels, valeurs, nbneurones = 784,
-                coefcv = 0.1, iterations=1, seuil = 0, normal = False, apprentissagedynamique = False,
+                iterations=1, coefcv = 0.1, seuil = 0, normal = False, apprentissagedynamique = False,
                 bruitgaussien = False, pourcecarttype = 0,
                 bruitsurpix = False, nbpixelsbruit = 0, positionschoisies = False, saturation = False)
     Reference.entrainement(0)
@@ -181,20 +181,88 @@ def testszero():
     print("Nous allons changer les paramètres ceteris paribus pour voir l'effet et essayer de trouver les meilleurs paramètres.")
     print(color.separer)
 
-    k, v = np.unique(petitqcmval, return_counts=True)
+    k, v = np.unique(qcmv, return_counts=True)
     nbchiffres = {int(k[i]): int(v[i]) for i in range(len(k))}
     print(color.BOLD + "Quelques informations sur la base de données utilisée: " + color.END + color.saut)
     print("Vous pouvez voir ici les quantités de chaque chiffre: ", f"{nbchiffres}", sep = None)
     print(f"La base de données sur laquelle il s'entraîne contient {len(valeurs)} photos")
-    print(f"La base de données sur laquelle nous réalisons les tests contient {len(petitqcmval)} photos")
+    print(f"La base de données sur laquelle nous réalisons les tests contient {len(qcmv)} photos")
     print(color.separer)
 
+    print(color.BLUE + color.BOLD + "Test de référence" + color.END + color.END, "\n")
     print("Commençons par tester avec tous les paramètres désactivés (si possible) pour avoir un point de référence: ",
-          "Nous aurons donc tous les booléens en False, le taux d'apprentissage à 0.1, sans normalisation et une seule itération: ",
-          color.UNDERLINE + "Taux d'erreur:" + color.END + f" {Reference.tauxerreur(0, petitqcmpix, petitqcmval)}", sep = color.saut)
+          "Nous aurons donc tous les booléens en False, le taux d'apprentissage à 0.1, sans normalisation, seuil à 0 et une seule itération: ",
+          color.UNDERLINE + "Taux d'erreur:" + color.END + f" {Reference.tauxerreur(0, qcmp, qcmv)}", sep = color.saut)
+    Reference.printcouleur(Reference.poids, "Reference")
+    print("Vous pouvez voir dans le plot de titre " + color.BOLD + "Reference" + color.END + " les poids que le réseau à obtenu.")
+
+    print(color.separer)
+
+    print(color.BLUE + color.BOLD + "Test sur différents chiffres" + color.END + color.END, "\n")
+
+    for i in range(1,10):
+        CH = Perceptron(pixels, valeurs, nbneurones=784,
+                           iterations=1, coefcv=0.1, seuil=0, normal=False, apprentissagedynamique=False,
+                           bruitgaussien=False, pourcecarttype=0,
+                           bruitsurpix=False, nbpixelsbruit=0, positionschoisies=False, saturation=False)
+        CH.entrainement(i)
+        print(color.UNDERLINE + f"Taux d'erreur sur {i}: " + color.END + f"{CH.tauxerreur(i,qcmp, qcmv)}")
+
+    print(color.separer)
+
+    print(color.BLUE + color.BOLD + "Test sur nombre itérations" + color.END + color.END, "\n")
+
+    print("Le test de référence montre le taux d'erreur avec 1 itération donc nous le faisons avec 2, 5 et 10 itérations.")
+
+    Testiter2 = Perceptron(pixels, valeurs, nbneurones=784,
+                           iterations=5, coefcv=0.1, seuil=0, normal=False, apprentissagedynamique=False,
+                           bruitgaussien=False, pourcecarttype=0,
+                           bruitsurpix=False, nbpixelsbruit=0, positionschoisies=False, saturation=False)
+    Testiter2.entrainement(0)
+
+    Testiter5 = Perceptron(pixels, valeurs, nbneurones=784,
+                           iterations=5, coefcv=0.1, seuil=0, normal=False, apprentissagedynamique=False,
+                           bruitgaussien=False, pourcecarttype=0,
+                           bruitsurpix=False, nbpixelsbruit=0, positionschoisies=False, saturation=False)
+    Testiter5.entrainement(0)
+
+    Testiter10 = Perceptron(pixels, valeurs, nbneurones=784,
+                            iterations=10, coefcv=0.1, seuil=0, normal=False, apprentissagedynamique=False,
+                            bruitgaussien=False, pourcecarttype=0,
+                            bruitsurpix=False, nbpixelsbruit=0, positionschoisies=False, saturation=False)
+    Testiter10.entrainement(0)
+
+    print(color.UNDERLINE + "Test avec 2 itérations: " + color.END, Testiter2.tauxerreur(0, qcmp, qcmv))
+    Testiter2.printcouleur(Testiter2.poids, "2iter")
+
+    print(color.UNDERLINE + "Test avec 5 itérations: " + color.END, Testiter5.tauxerreur(0, qcmp, qcmv))
+    Testiter5.printcouleur(Testiter5.poids, "5iter")
+
+    print(color.UNDERLINE + "Test avec 10 itérations: " + color.END, Testiter10.tauxerreur(0, qcmp, qcmv))
+    Testiter10.printcouleur(Testiter10.poids, "10iter")
+
+    print("Vous pouvez voir comment changent les poids dans les plots avec repectivement les titres: 2iter, 5iter et 10iter.")
+
+    print("Désormais fixons les itérations à 1.") #plus tard avec des tests changeant toutes les variables nous essayerons de trouver les meilleurs paramètres
+
+    print(color.separer)
+
+    print(color.BLUE + color.BOLD + "Test avec et sans normalisation" + color.END + color.END, "\n")
+
+    print("Vous pouvez voir dans le test de référence le test sans normalisation.")
+
+    Norm = Perceptron(pixels, valeurs, nbneurones = 784,
+                iterations=1, coefcv = 0.1, seuil = 0, normal = True, apprentissagedynamique = False,
+                bruitgaussien = False, pourcecarttype = 0,
+                bruitsurpix = False, nbpixelsbruit = 0, positionschoisies = False, saturation = False)
+    Norm.entrainement(0)
+
+    print(color.UNDERLINE + "Test avec 2 itérations: " + color.END, Testiter2.tauxerreur(0, qcmp, qcmv))
 
 
 
 
 
-testszero()
+
+
+testszero(petitqcmpix, petitqcmval)
