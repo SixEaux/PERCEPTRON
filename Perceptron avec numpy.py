@@ -20,10 +20,8 @@ with open('testpix', 'rb') as f:
     qcmpix = np.array(pickle.load(f))
     petitqcmpix = np.array(qcmpix[2000:2500])
 
-print(np.unique(petitqcmval, return_counts=True))
-
 class Perceptron:
-    def __init__(self, pix, vales, *, nbneurones = 784, coefcv = 0.1, iterations=10, seuil = 0, normal = False,
+    def __init__(self, pix, vales, *, nbneurones = 784, coefcv = 0.1, iterations=10, seuil = 0, normal = False, apprentissagedynamique = False,
                  bruitgaussien = False, pourcecarttype = 0,
                  bruitsurpix = False, nbpixelsbruit = 0, positionschoisies = False, saturation = True):
 
@@ -49,10 +47,12 @@ class Perceptron:
 
         #BRUIT PAR PIXELS
         self.boolbruitpix = bruitsurpix
-        self.saturation = saturation
+        self.saturation = saturation #estce qu'on met les pixels noirs ou blancs
         self.choisies = positionschoisies
         self.nbbruit = nbpixelsbruit
 
+        #APPRENTISSAGE DYNAMIQUE
+        self.dynamique = apprentissagedynamique
 
     def normaliserbase(self, base):
         return base/255
@@ -62,7 +62,7 @@ class Perceptron:
         imagebrouillee = np.clip(image + bruit, 0, 1) #je ne sais pas si nécessaire mais pour qu'il n'y ait pas de valeur au de la
         return imagebrouillee
 
-    def bruitpixels(self, image, norm, saturation):
+    def bruitpixels(self, image, norm, saturation): #choix de x pixels pour les mettre a noir ou blanc
         sat = (1,255) if saturation else (0,0)
         if self.choisies:
             try:
@@ -98,20 +98,20 @@ class Perceptron:
     def produit(self,tab1,tab2):
         return np.dot(tab1,tab2)
 
-    def vraiinput(self, input):
+    def vraiinput(self, input): #ajouter biais a l'input
         return np.concatenate(([self.biais],input))
 
-    def changerpoids(self, attendu, observe, input):
+    def changerpoids(self, attendu, observe, input): #backward propagation
         vrainput = self.vraiinput(input)
         self.poids += self.cvcoef * (attendu - observe) * vrainput
 
-    def validation(self, recherchee, valeur):
+    def validation(self, recherchee, valeur): #dire si le resultat est le bon
         return 1 if recherchee == valeur else 0
 
     def prediction(self, input):
         return self.fctactivescalier(self.produit(self.poids, self.vraiinput(input)))
 
-    def entrainement(self, recherch):
+    def entrainement(self, recherch): #on l'entraine self.iter fois sur la base avec recherch ce qu'on cherche a distinguer
         for n in range(self.iter):
             for fig in range(len(self.pix)):
                 pred = self.prediction(self.pix[fig])
@@ -123,6 +123,8 @@ class Perceptron:
             for i in range(len(basepix)):
                 predator = self.prediction(basepix[i])
                 correct += 1 if predator == self.validation(recherch, baseval[i]) else 0
+                if self.dynamique:
+                    self.changerpoids(self.validation(recherch, baseval[i]), predator, basepix[i])
             return 100 - correct*100/len(basepix)
         else:
             basepix = self.normaliserbase(basepix)
@@ -135,9 +137,11 @@ class Perceptron:
                 else:
                     predator = self.prediction(basepix[i])
                 correct += 1 if predator == self.validation(recherch, baseval[i]) else 0
+                if self.dynamique:
+                    self.changerpoids(self.validation(recherch, baseval[i]), predator, basepix[i])
             return 100 - correct * 100 / len(basepix)
 
-    def testuneimage(self, image, recherch):
+    def testuneimage(self, image, recherch, vraivaleur):
         self.printcouleur(self.poids)
         self.printcouleur(self.vraiinput(image))
         predator = self.prediction(image)
@@ -146,16 +150,51 @@ class Perceptron:
         else:
             print(f"À mon avis ce chiffre ne ressemble point à un {recherch}")
 
+        if self.dynamique:
+            self.changerpoids(self.validation(recherch, vraivaleur), predator, image)
 
 
-P = Perceptron(pixels, valeurs, coefcv = 0.2, seuil = 0, normal=True, iterations = 1,
-               bruitgaussien = True, pourcecarttype = 30,
-               bruitsurpix = False, nbpixelsbruit = 100, positionschoisies = False, saturation = True)
+class color:
+   PURPLE = '\033[95m'
+   CYAN = '\033[96m'
+   DARKCYAN = '\033[36m'
+   BLUE = '\033[94m'
+   GREEN = '\033[92m'
+   YELLOW = '\033[93m'
+   RED = '\033[91m'
+   BOLD = '\033[1m'
+   UNDERLINE = '\033[4m'
+   END = '\033[0m'
+   saut = "\n"
+   separer = "_____________________________________________________________________________________________________________________________________________________________"
 
-P.entrainement(0)
+def testszero():
+    Reference = Perceptron(pixels, valeurs, nbneurones = 784,
+                coefcv = 0.1, iterations=1, seuil = 0, normal = False, apprentissagedynamique = False,
+                bruitgaussien = False, pourcecarttype = 0,
+                bruitsurpix = False, nbpixelsbruit = 0, positionschoisies = False, saturation = False)
+    Reference.entrainement(0)
 
-# im = P.bruitpixels(qcmpix[3], False, True)
+    print(color.separer)
 
-# P.testuneimage(im, 0)
+    print("Tests pour rechercher le 0 dans une petite partie de la base de qcm. ", "Nous allons réaliser des tests avec différents parametres pour voir les changements.", sep = None)
+    print("Nous allons changer les paramètres ceteris paribus pour voir l'effet et essayer de trouver les meilleurs paramètres.")
+    print(color.separer)
 
-print(P.tauxerreur(0, qcmpix, qcmval))
+    k, v = np.unique(petitqcmval, return_counts=True)
+    nbchiffres = {int(k[i]): int(v[i]) for i in range(len(k))}
+    print(color.BOLD + "Quelques informations sur la base de données utilisée: " + color.END + color.saut)
+    print("Vous pouvez voir ici les quantités de chaque chiffre: ", f"{nbchiffres}", sep = None)
+    print(f"La base de données sur laquelle il s'entraîne contient {len(valeurs)} photos")
+    print(f"La base de données sur laquelle nous réalisons les tests contient {len(petitqcmval)} photos")
+    print(color.separer)
+
+    print("Commençons par tester avec tous les paramètres désactivés (si possible) pour avoir un point de référence: ",
+          "Nous aurons donc tous les booléens en False, le taux d'apprentissage à 0.1, sans normalisation et une seule itération: ",
+          color.UNDERLINE + "Taux d'erreur:" + color.END + f" {Reference.tauxerreur(0, petitqcmpix, petitqcmval)}", sep = color.saut)
+
+
+
+
+
+testszero()
