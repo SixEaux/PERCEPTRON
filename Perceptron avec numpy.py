@@ -125,7 +125,7 @@ class Perceptron:
                 correct += 1 if predator == self.validation(recherch, baseval[i]) else 0
                 if self.dynamique:
                     self.changerpoids(self.validation(recherch, baseval[i]), predator, basepix[i])
-            return 100 - correct*100/len(basepix)
+            return round(100 - correct*100/len(basepix), 2)
         else:
             basepix = self.normaliserbase(basepix)
             correct = 0
@@ -139,7 +139,7 @@ class Perceptron:
                 correct += 1 if predator == self.validation(recherch, baseval[i]) else 0
                 if self.dynamique:
                     self.changerpoids(self.validation(recherch, baseval[i]), predator, basepix[i])
-            return 100 - correct * 100 / len(basepix)
+            return round(100 - correct * 100 / len(basepix), 2)
 
     def testuneimage(self, image, recherch, vraivaleur):
         self.printcouleur(self.poids, "Poids")
