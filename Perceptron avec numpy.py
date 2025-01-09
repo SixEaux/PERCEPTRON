@@ -241,6 +241,9 @@ def testsbrutzero(qcmp, qcmv):
                            bruitsurpix=False, nbpixelsbruit=0, positionschoisies=False, saturation=False)
         CH.entrainement(i)
         print(color.UNDERLINE + f"Taux d'erreur sur {i}:" + color.END, f"{CH.tauxerreur(i,qcmp, qcmv)}", sep = " ")
+        CH.printcouleur(CH.poids, f"Chiffre {i}")
+
+    print("Vous pouvez voir les poids de chaque chiffre dans les plots.")
 
     print(color.separer)
 
