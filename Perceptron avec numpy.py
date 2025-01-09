@@ -313,7 +313,7 @@ def testsbrutzero(qcmp, qcmv):
     Testiter20.printcouleur(Testiter20.poids, "20iter")
 
     print(color.UNDERLINE + "Test avec 50 itérations:" + color.END, Testiter50.tauxerreur(0, qcmp, qcmv), sep=" ")
-    Testiter50.printcouleur(Testiter50.poids, "100iter")
+    Testiter50.printcouleur(Testiter50.poids, "50iter")
 
     print(color.UNDERLINE + "Test avec 100 itérations:" + color.END, Testiter100.tauxerreur(0, qcmp, qcmv), sep=" ")
     Testiter100.printcouleur(Testiter100.poids, "100iter")
@@ -404,6 +404,16 @@ def testsbrutzero(qcmp, qcmv):
 
     print("Ici, nous avons donc trouvé une disposition possible des paramètres mais il y en a plein \n"
           "mais dans tous les cas les bruits vont affecter la qualité de la prédiction.")
+
+    param = {"iterations":20, "coefcv":0.01, "seuil":0.1, "normal":True, "apprentissagedynamique":True, "bruitgaussien":True, "pourcecarttype":15, "bruitsurpix":True, "nbpixelsbruit":100, "positionschoisies":False, "saturation":True}
+    print("Par exemple une bonne configuration contre le bruit peut être:",
+          param)
+
+    par = Perceptron(pixels, valeurs, **param)
+    par.entrainement(0)
+    print(color.UNDERLINE + f"Taux d'erreur:" + color.END,
+          f"{par.tauxerreur(0, qcmp, qcmv)}", sep=" ")
+
 
     print("Vous avez la possibilité de tester vous-même en mettant les paramètre de votre choix dans l'input suivant.")
 
