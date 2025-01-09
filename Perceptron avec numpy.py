@@ -154,8 +154,10 @@ class Perceptron:
             self.changerpoids(self.validation(recherch, vraivaleur), predator, image)
 
 def testuser():
+    print(color.separer)
     cont = True
     while cont:
+        print(color.separer)
         try:
             param = {"coefcv": float(input("Donnez moi un entier pour le taux d'apprentissage: ")), "iterations": int(input("Donnez moi un entier pour le nombre d'itérations: ")), "seuil": float(input("Donnez moi un entier pour le seuil: ")),
              "normal": bool(input("Donnez moi un boolean pour savoir si je normalise: ")), "apprentissagedynamique": bool(input("Donnez moi un boolean pour savoir si j'utilise l'apprentissage dynamique: ")),
