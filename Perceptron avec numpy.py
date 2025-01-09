@@ -423,4 +423,4 @@ def testsbrutzero(qcmp, qcmv):
 
 testsbrutzero(qcmpix, qcmval)
 
-testuser()
+# testuser()
