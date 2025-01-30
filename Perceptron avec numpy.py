@@ -423,6 +423,7 @@ def testsbrutzero(qcmp, qcmv):
 
     testuser()
 
-testsbrutzero(qcmpix, qcmval)
+# testsbrutzero(qcmpix, qcmval)
 
 # testuser()
+
