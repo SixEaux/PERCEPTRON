@@ -1,26 +1,35 @@
 import numpy as np
 import pickle
+from LAYER import Layer
 
-with open('valeursentraine', 'rb') as f:
-    valeurs = np.array(pickle.load(f))
-    vali = np.array(valeurs[:10000])
 
-with open('pixelsentraine', 'rb') as f:
-    pixels = np.array(pickle.load(f))
-    pixi = np.array(pixels[:10000])
 
-with open('testval', 'rb') as f:
-    qcmval = np.array(pickle.load(f))
-    petitqcmval = np.array(qcmval[0:5000])
+def takeinputs():
 
-with open('testpix', 'rb') as f:
-    qcmpix = np.array(pickle.load(f))
-    petitqcmpix = np.array(qcmpix[0:5000])
+    with open('valeursentraine', 'rb') as f:
+        valeurs = np.array(pickle.load(f))
+        vali = np.array(valeurs[:10000])
+
+    with open('pixelsentraine', 'rb') as f:
+        pixels = np.array(pickle.load(f))
+        pixi = np.array(pixels[:10000])
+
+    with open('testval', 'rb') as f:
+        qcmval = np.array(pickle.load(f))
+        petitqcmval = np.array(qcmval[0:5000])
+
+    with open('testpix', 'rb') as f:
+        qcmpix = np.array(pickle.load(f))
+        petitqcmpix = np.array(qcmpix[0:5000])
 
 class fct:
-    def __init__(self):
-        self.sig = lambda x: 1/(1+np.exp(-x))
-        self.difsig = lambda x: (1/(1+np.exp(-x))) * (1-(1/(1+np.exp(-x))))
+    sig = lambda x: 1 / (1 + np.exp(-x))
+    difsig = lambda x: (1 / (1 + np.exp(-x))) * (1 - (1 / (1 + np.exp(-x))))
+
+    relu = lambda x: x > 0
+    difrelu = lambda x: x > 0
+
+
 
 
 class NN(fct):
@@ -40,14 +49,8 @@ class NN(fct):
         self.pix = pix/255
         self.vales = vales
 
-    def produit(self, tab1, tab2):
-        return np.dot(tab1, tab2)
 
-    def forward(self):
-        pass
 
-    def backward(self):
-        pass
 
 
 
