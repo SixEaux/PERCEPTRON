@@ -49,6 +49,8 @@ class NN(fct):
         self.pix = pix/255
         self.vales = vales
 
+    def train(self):
+        pass
 
 
 

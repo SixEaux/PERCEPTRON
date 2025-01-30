@@ -14,3 +14,7 @@ class Layer:
 
     def backward(self, erroroutput):
         error = np.dot(self.weights.T, erroroutput)
+
+    def getactivationfunct(self):
+        pass
+
