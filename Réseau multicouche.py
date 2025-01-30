@@ -22,28 +22,14 @@ def takeinputs():
         qcmpix = np.array(pickle.load(f))
         petitqcmpix = np.array(qcmpix[0:5000])
 
-class fct:
-    sig = lambda x: 1 / (1 + np.exp(-x))
-    difsig = lambda x: (1 / (1 + np.exp(-x))) * (1 - (1 / (1 + np.exp(-x))))
 
-    relu = lambda x: x > 0
-    difrelu = lambda x: x > 0
-
-
-
-
-class NN(fct):
-    def __init__(self, pix, vales, nblayer, *, nbneurones=784, coefcv=0.1, iterations=10, seuil=0.0):
-        super().__init__()
+class NN():
+    def __init__(self, pix, vales, nblayer, *, coefcv=0.1, iterations=10):
         self.iter = iterations  # nombre iteration entrainement
-        self.nbneur = nbneurones  # nombre de neurones
         self.nblay = nblayer # nombre de layers
 
         # INITIALISATION VARIABLES
-        self.poids = np.ones(nbneurones + 1)  # np.random.randn(nbneurones + 1) * 0.01 #avec le biai qui est la premiere valeur
         self.cvcoef = coefcv
-        self.seuil = seuil
-        self.biais = 1
 
         # INPUTS POUR ENTRAINEMENT
         self.pix = pix/255

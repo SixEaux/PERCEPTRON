@@ -25,15 +25,15 @@ class SoftMax:
     def backward(self, input):
         pass
 
-class Tanh:
-
-    def forward(self, input):
-        pass
-
-    def backward(self, input):
-        pass
-
 class Error:
 
     def CCE(self, output, indexbonoutput): #CategoricalCrossEntropy: erreur calculée avec un vecteur avec 0 partout en 1 à la position voulu et l'erreur est juste -ln() de la position dans l'output où il y a le 1
         return -np.log(output[indexbonoutput])
+
+
+class fct:
+    sig = lambda x: 1 / (1 + np.exp(-x))
+    difsig = lambda x: (1 / (1 + np.exp(-x))) * (1 - (1 / (1 + np.exp(-x))))
+
+    relu = lambda x: x > 0
+    difrelu = lambda x: x > 0
