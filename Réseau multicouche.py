@@ -3,6 +3,8 @@ import pickle
 from LAYER import Layer
 
 
+#do method with batchs to do it directly with 32 for example
+
 
 def takeinputs():
 
@@ -35,8 +37,18 @@ class NN():
         self.pix = pix/255
         self.vales = vales
 
+    def createlayers(self):
+        pass
+
     def train(self):
         pass
+
+    def prediction(self):
+        pass
+
+    def tauxerreur(self):
+        pass
+
 
 
 

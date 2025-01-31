@@ -2,7 +2,7 @@ import numpy as np
 
 
 class Layer:
-    def __init__(self, nbneurons, activation, nbinputs, difffct):
+    def __init__(self, nbneurons, activation, nbinputs):
         self.weights = np.ones((nbinputs, nbneurons))  # matrix last layers number of outputs * nb of neurons
         self.biases = np.zeros((1, nbneurons))
 
@@ -12,8 +12,8 @@ class Layer:
     def forward(self, input):
         return self.activation(np.dot(input, self.weights)) + self.biases
 
-    def backward(self, erroroutput):
-        error = np.dot(self.weights.T, erroroutput)
+    def backward(self, diffnextlayer):
+        pass
 
     @property
     def getactivationfunct(self, activation):
