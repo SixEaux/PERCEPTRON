@@ -8,7 +8,6 @@ class ReLu:
     def backward(self, input):
         return input > 0
 
-
 class Sigmoide:
 
     def forward(self, input):

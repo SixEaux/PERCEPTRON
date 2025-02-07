@@ -1,9 +1,13 @@
 import numpy as np
 import pickle
 from LAYER import Layer
+from tabulate import tabulate
 
 
-#do method with batchs to do it directly with 32 for example
+# Plus tard:
+# do method with batchs to do it directly with 32 for example
+# le input est un batch en forme de matrice avec 32 lignes et 784 colonnes
+# expected will be a one hot vector
 
 
 def takeinputs():
@@ -24,9 +28,11 @@ def takeinputs():
         qcmpix = np.array(pickle.load(f))
         petitqcmpix = np.array(qcmpix[0:5000])
 
+    return valeurs, pixels
+
 
 class NN():
-    def __init__(self, pix, vales, nblayer, *, coefcv=0.1, iterations=10):
+    def __init__(self, pix, vales, nblayer, infolay, errorfunc, *, coefcv=0.1, iterations=10):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = nblayer # nombre de layers
 
@@ -37,21 +43,44 @@ class NN():
         self.pix = pix/255
         self.vales = vales
 
-    def createlayers(self):
-        pass
+        self.infolay = infolay # list de dictionnaires avec les params de chaque layer sauf input et output
+        self.layers = []
+
+        self.errorfunc = self.geterrorfunc(errorfunc)
+
+
+    def printbasesimple(self, base):
+        print(tabulate(base.reshape((28,28))))
+
+    def createlayers(self): #create all layers
+        for i in range(len(self.infolay)):
+            self.layers.append(Layer(**self.infolay[i]))
+        self.layers.append(Layer(2, "softmax", self.infolay[-1]["nbinputs"]))
+
+    def geterrorfunc(self, errorfunc): #exp est un onehotvect
+        if errorfunc is "eqm":
+            return lambda obs, exp: np.sum((obs-exp)**2, axis=1)
+
+    def forwardprop(self, input): #forward all the layers until output
+        for i in range(len(self.layers)):
+            res = self.layers[i].forward(input)
+            input = res
+        return input
+
+    def backprop(self, observed, expected):
+        error = self.errorfunc(observed, expected)
 
     def train(self):
         pass
 
-    def prediction(self):
-        pass
-
-    def tauxerreur(self):
+    def tauxerreur(self): #go in all the test and see accuracy
         pass
 
 
+val, pix = takeinputs()
+lay = [{"nbneurons": 3, "activation": "sigmoide", "nbinputs": 784}]
 
+g = NN(pix, val, 3, lay)
 
-
-
+g.printbasesimple(g.forwardprop(pix[10]))
 

@@ -1,23 +1,19 @@
 import numpy as np
-
+from Functions import SoftMax
 
 class Layer:
-    def __init__(self, nbneurons, activation, nbinputs):
-        self.weights = np.ones((nbinputs, nbneurons))  # matrix last layers number of outputs * nb of neurons
-        self.biases = np.zeros((1, nbneurons))
+    def __init__(self, nbneurons, activation, lnginputs):
+        self.weights = np.ones((lnginputs, nbneurons))
+        self.bias = np.zeros((nbneurons, 1))
 
         self.activation = self.getactivationfunct(activation)
         self.difactivation = self.getactivationdiff(activation)
 
-    def forward(self, input):
-        return self.activation(np.dot(input, self.weights)) + self.biases
-
-    def backward(self, diffnextlayer):
-        pass
-
     @property
     def getactivationfunct(self, activation):
-        if activation == 'sigmoid':
+        if activation == 'softmax':
+            return lambda z: np.exp(z) / np.sum(np.exp(z), axis=1, keepdims=True)
+        elif activation == 'sigmoid':
             return lambda x: 1 / (1 + np.exp(-x))
 
         elif activation == 'relu':
@@ -28,7 +24,9 @@ class Layer:
 
     @property
     def getactivationdiff(self, activation):
-        if activation == 'sigmoid':
+        if activation == 'softmax':
+            return lambda z: np.exp(z) / np.sum(np.exp(z), axis=1, keepdims=True)
+        elif activation == 'sigmoid':
             return lambda x: np.exp(-x) / (1 + np.square(np.exp(-x)))
 
         elif activation == 'relu':
@@ -37,5 +35,10 @@ class Layer:
         elif activation == 'tanh':
             return lambda x: 1 - np.square(np.tanh(x))
 
+    def backward(self, diffnextlayer):
+        pass
+
+    def forward(self, input):
+        return self.activation(np.dot(self.weights.T, input) + self.bias)
 
 
