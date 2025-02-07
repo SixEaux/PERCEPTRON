@@ -48,6 +48,8 @@ class NN():
 
         self.errorfunc = self.geterrorfunc(errorfunc)
 
+        self.errordiff = self.geterrordiff(errorfunc)
+
 
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28,28))))
@@ -60,6 +62,15 @@ class NN():
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
         if errorfunc is "eqm":
             return lambda obs, exp: np.sum((obs-exp)**2, axis=1)
+        elif errorfunc is "CCC":
+            return lambda obs, exp: -np.sum(exp * np.log(np.clip(obs, 1e-7, 1 - 1e-7)), axis=1) #si le exp c'est un one hot ver¡cteurs
+            # si place bon output: return lambda obs, exp: -np.log(np.clip(obs, 1e-7, 1 - 1e-7)[exp, 1])
+
+    def geterrordiff(self, errorfunc):
+        if errorfunc is "eqm":
+            return
+        elif errorfunc is "CCC":
+            return
 
     def forwardprop(self, input): #forward all the layers until output
         for i in range(len(self.layers)):
@@ -69,6 +80,7 @@ class NN():
 
     def backprop(self, observed, expected):
         error = self.errorfunc(observed, expected)
+
 
     def train(self):
         pass
