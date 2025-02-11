@@ -41,4 +41,12 @@ class Layer:
     def forward(self, input):
         return self.activation(np.dot(self.weights.T, input) + self.bias)
 
+class OutputLayer(Layer):
+    def __init__(self, nbneurons, activation, lnginputs):
+        super().__init__(nbneurons, activation, lnginputs)
+
+
+    def backward(self, diffnextlayer):
+        pass
+
 
