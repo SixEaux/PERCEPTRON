@@ -1,6 +1,6 @@
 import numpy as np
 import pickle
-from LAYER import Layer
+from LAYER import Layer, OutputLayer
 from tabulate import tabulate
 
 
@@ -50,32 +50,33 @@ class NN():
 
         self.errordiff = self.geterrordiff(errorfunc)
 
+        self.createlayers()
 
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28,28))))
 
     def createlayers(self): #create all layers
-        for i in range(len(self.infolay)):
-            self.layers.append(Layer(**self.infolay[i]))
-        self.layers.append(Layer(2, "softmax", self.infolay[-1]["nbinputs"]))
+        for i in range(self.nblay):
+            self.layers.append(Layer(*self.infolay[i]))
+        self.layers.append(OutputLayer(10, None, self.infolay[-1][2]))
 
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
-        if errorfunc is "eqm":
+        if errorfunc == "eqm":
             return lambda obs, exp: np.sum((obs-exp)**2, axis=1)
-        elif errorfunc is "CCC":
+        elif errorfunc == "CCC":
             return lambda obs, exp: -np.sum(exp * np.log(np.clip(obs, 1e-7, 1 - 1e-7)), axis=1) #si le exp c'est un one hot ver¡cteurs
             # si place bon output: return lambda obs, exp: -np.log(np.clip(obs, 1e-7, 1 - 1e-7)[exp, 1])
 
     def geterrordiff(self, errorfunc):
-        if errorfunc is "eqm":
+        if errorfunc == "eqm":
             return
-        elif errorfunc is "CCC":
+        elif errorfunc == "CCC":
             return
 
     def forwardprop(self, input): #forward all the layers until output
         for i in range(len(self.layers)):
-            res = self.layers[i].forward(input)
-            input = res
+            input = self.layers[i].forward(input)
+            print(input)
         return input
 
     def backprop(self, observed, expected):
@@ -90,9 +91,8 @@ class NN():
 
 
 val, pix = takeinputs()
-lay = [{"nbneurons": 3, "activation": "sigmoide", "nbinputs": 784}]
+lay = [[64, "relu", 784]]
 
-g = NN(pix, val, 3, lay)
+g = NN(pix, val, 1, lay, "eqm")
 
-g.printbasesimple(g.forwardprop(pix[10]))
-
+print(g.forwardprop(pix[10].T))
