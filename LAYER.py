@@ -60,5 +60,5 @@ class OutputLayer(Layer):
     def forward(self, input):
         return self.softmax(np.dot(np.transpose(self.weights), input) + self.bias)
 
-    def backward(self, diffnextlayer):
+    def backward(self, diffnextlayer, z):
         pass

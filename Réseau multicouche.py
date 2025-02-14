@@ -32,9 +32,9 @@ def takeinputs():
 
 
 class NN:
-    def __init__(self, pix, vales, nblayer, infolay, errorfunc, *, coefcv=0.1, iterations=10):
+    def __init__(self, pix, vales, infolay, errorfunc, *, coefcv=0.1, iterations=10):
         self.iter = iterations  # nombre iteration entrainement
-        self.nblay = nblayer # nombre de layers
+        self.nblay = len(infolay) # nombre de layers
 
         # INITIALISATION VARIABLES
         self.cvcoef = coefcv
@@ -43,23 +43,65 @@ class NN:
         self.pix = pix/255
         self.vales = vales
 
-        self.infolay = infolay # list de dictionnaires avec les params de chaque layer sauf input et output
-        self.layers = []
+        self.parameters = self.params(infolay)
 
-        self.createlayers()
+        self.errorfunc = self.geterrorfunc(errorfunc)
 
     def printbasesimple(self, base):
-        print(tabulate(base.reshape((28,28))))
+        print(tabulate(base.reshape((28, 28))))
 
-    def createlayers(self): #create all layers
-        for i in range(self.nblay):
-            self.layers.append(Layer(*self.infolay[i]))
-        self.layers.append(OutputLayer(10, "eqm", self.infolay[-1][0]))
+    def geterrorfunc(self, errorfunc): #exp est un onehotvect
+        if errorfunc == "eqm":
+            return [lambda obs, exp, nbinput: (np.sum((obs - exp) ** 2, axis=1)) / (2 * nbinput), lambda obs, expected: (obs - expected)]
+        elif errorfunc == "CCC":
+            return [lambda obs, expected: -np.sum(expected * np.log(np.clip(obs, 1e-7, 1 - 1e-7)), axis=1)] #si le exp c'est un one hot ver¡cteurs
+            # si place bon output: return lambda obs, exp: -np.log(np.clip(obs, 1e-7, 1 - 1e-7)[exp, 1])
+            # il manque la diff
+
+    def getfct(self, acti):
+        if acti == 'sigmoid':
+            return [lambda x: 1 / (1 + np.exp(-x)), lambda x: np.exp(-x) / (1 + np.square(np.exp(-x)))]
+
+        elif acti == 'relu':
+            return [lambda x: np.where(x > 0, x, 0), lambda x: np.where(x > 0, x, 0)]
+
+        elif acti == 'tanh':
+            return [lambda x: np.tanh(x), lambda x: 1 - np.square(np.tanh(x))]
+
+        elif acti == 'softmax':
+            return [lambda input: np.exp(input) / np.sum(np.exp(input), axis=0), None]
+
+        else:
+            pass
+
+    def params(self, lst): #lst liste avec un tuple avec (nbneurons, fctactivation)
+        param = {}
+
+
+
+        for l in range(1, len(lst)):
+            param["w" + str(l)] = np.random.uniform(-1,1,(lst[l-1][0], lst[l][0]))
+            param["b" + str(l)] = np.random.uniform(-1,1,(lst[l][0], 1))
+            param["fct" + str(l)] = self.getfct(lst[l][1])[0]
+            param["diff" + str(l)] = self.getfct(lst[l][1])[1]
+
+        return param
+
 
     def forwardprop(self, input): #forward all the layers until output
-        for i in range(len(self.layers)):
-            input = self.layers[i].forward(input)
-        return input
+        outlast = input
+        vieux = [] #garder pour la backprop les variables
+        for l in range(1, self.nblay):
+            activavant = outlast
+            w = self.parameters["w" + str(l)]
+            b = self.parameters["b" + str(l)]
+            z = np.dot(w.T, activavant) + b
+            a = self.parameters["fct" + str(l)](z)
+            vieux.append((activavant,w,b,z))
+            outlast = a
+
+        return outlast, vieux
+
 
     def backprop(self, observed, expected):
         pass
@@ -75,10 +117,10 @@ class NN:
 
 
 val, pix = takeinputs()
-lay = [[64, "sigmoid", 784]]
+lay = [(784,"input"), (64,"relu"), (20, "sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, 1, lay, "eqm")
+g = NN(pix, val, lay, "eqm")
 
 
 l = g.forwardprop((pix[10].reshape(784,1))/255)
-print(l)
+print(l[0])
