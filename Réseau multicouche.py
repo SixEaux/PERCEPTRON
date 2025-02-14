@@ -46,10 +46,6 @@ class NN:
         self.infolay = infolay # list de dictionnaires avec les params de chaque layer sauf input et output
         self.layers = []
 
-        self.errorfunc = self.geterrorfunc(errorfunc)
-
-        self.errordiff = self.geterrordiff(errorfunc)
-
         self.createlayers()
 
     def printbasesimple(self, base):
@@ -58,32 +54,20 @@ class NN:
     def createlayers(self): #create all layers
         for i in range(self.nblay):
             self.layers.append(Layer(*self.infolay[i]))
-        self.layers.append(OutputLayer(10, None, self.infolay[-1][0]))
-
-    def geterrorfunc(self, errorfunc): #exp est un onehotvect
-        if errorfunc == "eqm":
-            return lambda obs, exp: np.sum((obs-exp)**2, axis=1)
-        elif errorfunc == "CCC":
-            return lambda obs, exp: -np.sum(exp * np.log(np.clip(obs, 1e-7, 1 - 1e-7)), axis=1) #si le exp c'est un one hot ver¡cteurs
-            # si place bon output: return lambda obs, exp: -np.log(np.clip(obs, 1e-7, 1 - 1e-7)[exp, 1])
-
-    def geterrordiff(self, errorfunc):
-        if errorfunc == "eqm":
-            return
-        elif errorfunc == "CCC":
-            return
+        self.layers.append(OutputLayer(10, "eqm", self.infolay[-1][0]))
 
     def forwardprop(self, input): #forward all the layers until output
         for i in range(len(self.layers)):
-            res = self.layers[i].forward(input)
-            input = res
+            input = self.layers[i].forward(input)
         return input
 
     def backprop(self, observed, expected):
-        error = self.errorfunc(observed, expected)
+        pass
 
+    def trainsimple(self):
+        pass
 
-    def train(self):
+    def trainbatch(self):
         pass
 
     def tauxerreur(self): #go in all the test and see accuracy
@@ -96,6 +80,5 @@ lay = [[64, "sigmoid", 784]]
 g = NN(pix, val, 1, lay, "eqm")
 
 
-g.printbasesimple(pix[10].reshape(784,1)/255)
 l = g.forwardprop((pix[10].reshape(784,1))/255)
 print(l)
