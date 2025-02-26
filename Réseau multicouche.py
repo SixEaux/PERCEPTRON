@@ -115,7 +115,7 @@ class NN:
             alprec = activations[l - 2]
             dif = self.parameters["diff" + str(l - 1)](alprec)
 
-            delta = np.dot( w.T, delta) * dif
+            delta = np.dot(w.T, delta) * dif
 
             dwl = np.dot(alprec.T, delta)
             dbl = np.sum(delta, axis=0, keepdims=True)
