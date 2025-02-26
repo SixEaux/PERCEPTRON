@@ -60,7 +60,7 @@ class NN:
             return [lambda x: 1 / (1 + np.exp(-x)), lambda x: np.exp(-x) / (1 + np.square(np.exp(-x)))]
 
         elif acti == 'relu':
-            return [lambda x: np.where(x > 0, x, 0), lambda x: np.where(x > 0, x, 0)]
+            return [lambda x: np.where(x > 0, x, 0), lambda x: np.where(x > 0, 1, 0)]
 
         elif acti == 'tanh':
             return [lambda x: np.tanh(x), lambda x: 1 - np.square(np.tanh(x))]
@@ -108,45 +108,29 @@ class NN:
         dw.append(np.dot(alprec, delta.T))
         db.append(np.sum(delta, axis=0, keepdims=True))
 
+        for l in range(self.nblay-2, 0, -1):
 
-        for l in range(self.nblay-1, 0, -1):
-            w = self.parameters["w" + str(l-1)]
+            w = self.parameters["w" + str(l+1)]
 
-            alprec = activations[l - 2]
-            dif = self.parameters["diff" + str(l - 1)](alprec)
+            alprec = activations[l]
 
-            delta = np.dot(w.T, delta) * dif
+            dif = self.parameters["diff" + str(l)](zs[l-1])
 
-            dwl = np.dot(alprec.T, delta)
+            delta = np.dot(w, delta) * dif
+
+            dwl = np.dot(alprec, delta.T)
             dbl = np.sum(delta, axis=0, keepdims=True)
 
             dw.append(dwl)
             db.append(dbl)
+
         return dw, db
 
-
-    def newbackprop(self, expected, zs, activations, nbinp=1):
-
-
-        delta = self.differrorfunc(activations[-1], expected, nbinp) * self.parameters["diff" + str(self.nblay-1)](zs[-1])
-
-        self.parameters["w" + str(self.nblay - 1)] -= self.cvcoef * np.dot(activations[-2], delta.T)
-        self.parameters["b" + str(self.nblay - 1)] -= self.cvcoef * delta
-
-        for l in range(2, self.nblay):
-            z = zs[-l]
-            diff = self.parameters["diff" + str(self.nblay - l)](z)
-            w = self.parameters["w" + str(self.nblay - l + 1)]
-            delta = np.dot(w, delta) * diff
-
-            self.parameters["w" + str(l)] -= self.cvcoef * np.dot(activations[-l-1], delta.T)
-            self.parameters["b" + str(l)] -= self.cvcoef * delta
-
-
     def actualiseweights(self, dw, db):
-        for l in range(1, self.nblay):
-            self.parameters["w" + str(l)] += dw[l - 1]
-            self.parameters["b" + str(l)] += db[l - 1]
+        for l in range(1,self.nblay):
+            self.parameters["w" + str(l)] += dw[l-1]
+            self.parameters["b" + str(l)] += db[l-1]
+
 
     def trainsimple(self):
         for round in range(self.iter):
@@ -165,17 +149,14 @@ class NN:
         return np.array([1 if i == val - 1 else 0 for i in range(10)])
 
 
-
-
-
 val, pix = takeinputs()
 
-lay = [(784,"input"), (6,"relu"), (10, "relu")]
+lay = [(784,"input"), (6,"relu"), (3,"relu"), (10, "relu")]
 
 g = NN(pix, val, lay, "eqm")
 
 
 l = g.forwardprop((pix[10].reshape(784,1))/255)
 
-g.backprop(l[0], g.vecteur(val[10]).reshape((10,1)), l[1])
+g.backprop(g.vecteur(val[10]).reshape((10,1)), l[1], l[2])
 
