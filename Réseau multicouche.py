@@ -87,22 +87,20 @@ class NN:
 
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
-        vieux = [(input,0,0,0)] #garder pour la backprop les variables
-        for l in range(1, self.nblay-1):
+        activations = [outlast] #garder pour la backprop les variables
+        zs = []
+        for l in range(1, self.nblay):
             w = self.parameters["w" + str(l)]
             b = self.parameters["b" + str(l)]
             z = np.dot(w.T, outlast) + b
             a = self.parameters["fct" + str(l)](z)
-            vieux.append((a,w,b,z))
+
+            zs.append(z)
+            activations.append(a)
+
             outlast = a
 
-        w = self.parameters["w" + str(self.nblay-1)]
-        b = self.parameters["b" + str(self.nblay-1)]
-        z = np.dot(w.T, outlast) + b
-        outlast = self.parameters["fct" + str(self.nblay-1)](z)
-        vieux.append((outlast, w, b, z))
-
-        return outlast, vieux #out last c'est la prediction et vieux c'est pour backprop
+        return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
     def backprop(self, observed, expected, vieux, nbinp=1): # observed y expected vectores de nboutputs * 1
         C = self.errorfunc(observed,expected, nbinp)
@@ -127,23 +125,21 @@ class NN:
             self.parameters["b" + str(i)] -= self.cvcoef * np.sum(dL, axis=1, keepdims=True)
             print(self.parameters["w" + str(i)])
 
-    def newbackprop(self, observed, expected, vieux, nbinp=1):
-
-        activ, _, _, z = vieux[-1]
-        delta = self.differrorfunc(observed, expected, nbinp) * self.parameters["diff" + str(self.nblay-1)](z)
-        print(delta.shape)
-        print(vieux[-2][0].T.shape)
+    def newbackprop(self, expected, zs, activations, nbinp=1):
 
 
-        self.parameters["w" + str(self.nblay - 1)] -= self.cvcoef * np.dot(vieux[-2][0], delta.T)
+        delta = self.differrorfunc(activations[-1], expected, nbinp) * self.parameters["diff" + str(self.nblay-1)](zs[-1])
+
+        self.parameters["w" + str(self.nblay - 1)] -= self.cvcoef * np.dot(activations[-2], delta.T)
         self.parameters["b" + str(self.nblay - 1)] -= self.cvcoef * delta
 
-        for l in range(self.nblay-2, 0, -1):
-            activ, w, _, z = vieux[l]
-            diff = self.parameters["diff" + str(l)](z)
-            delta = np.dot(w.T, delta) * diff
+        for l in range(2, self.nblay):
+            z = zs[-l]
+            diff = self.parameters["diff" + str(self.nblay - l)](z)
+            w = self.parameters["w" + str(self.nblay - l + 1)]
+            delta = np.dot(w, delta) * diff
 
-            self.parameters["w" + str(l)] -= self.cvcoef * np.dot(delta, vieux[-2][0].transpose())
+            self.parameters["w" + str(l)] -= self.cvcoef * np.dot(activations[-l-1], delta.T)
             self.parameters["b" + str(l)] -= self.cvcoef * delta
 
 
