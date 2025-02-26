@@ -144,7 +144,9 @@ class NN:
 
 
     def actualiseweights(self, dw, db):
-        pass
+        for l in range(1, self.nblay):
+            self.parameters["w" + str(l)] += dw[l - 1]
+            self.parameters["b" + str(l)] += db[l - 1]
 
     def trainsimple(self):
         for round in range(self.iter):
@@ -168,7 +170,7 @@ class NN:
 
 val, pix = takeinputs()
 
-lay = [(784,"input"), (4, "relu"), (6,"relu"), (10, "relu")]
+lay = [(784,"input"), (6,"relu"), (10, "relu")]
 
 g = NN(pix, val, lay, "eqm")
 
