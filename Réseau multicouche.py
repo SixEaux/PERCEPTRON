@@ -31,7 +31,7 @@ def takeinputs():
 
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, *, coefcv=0.1, iterations=10):
+    def __init__(self, pix, vales, infolay, errorfunc, *, coefcv=0.1, iterations=1):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay) # nombre de layers
 
@@ -128,8 +128,8 @@ class NN:
 
     def actualiseweights(self, dw, db):
         for l in range(1,self.nblay):
-            self.parameters["w" + str(l)] += dw[l-1]
-            self.parameters["b" + str(l)] += db[l-1]
+            self.parameters["w" + str(l)] -= dw[l]
+            self.parameters["b" + str(l)] -= db[l]
 
 
     def trainsimple(self):
@@ -140,7 +140,6 @@ class NN:
                 dw, db = self.backprop(forw[0], self.vecteur(self.vales[p]), forw[1])
 
                 self.actualiseweights(dw, db)
-
 
     def tauxerreur(self): #go in all the test and see accuracy
         pass
@@ -155,8 +154,7 @@ lay = [(784,"input"), (6,"relu"), (3,"relu"), (10, "relu")]
 
 g = NN(pix, val, lay, "eqm")
 
+g.trainsimple()
 
-l = g.forwardprop((pix[10].reshape(784,1))/255)
 
-g.backprop(g.vecteur(val[10]).reshape((10,1)), l[1], l[2])
 
