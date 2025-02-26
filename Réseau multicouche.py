@@ -84,7 +84,7 @@ class NN:
 
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
-        activations = [outlast] #garder pour la backprop les variables
+        activations = [input] #garder pour la backprop les variables
         zs = []
         for l in range(1, self.nblay):
             w = self.parameters["w" + str(l)]
@@ -104,29 +104,29 @@ class NN:
         db = []
         delta = self.differrorfunc(activations[-1], expected, nbinp)
 
-        alprec = activations[-2]
-        dw.append(np.dot(alprec, delta.T))
-        db.append(np.sum(delta, axis=0, keepdims=True))
+        dw.append(np.dot(activations[-2], delta.T))
+
+        db.append(np.sum(delta, axis=1, keepdims=True))
 
         for l in range(self.nblay-2, 0, -1):
 
             w = self.parameters["w" + str(l+1)]
 
-            alprec = activations[l]
-
-            dif = self.parameters["diff" + str(l)](zs[l-1])
+            dif = self.parameters["diff" + str(l)](activations[l-1])
 
             delta = np.dot(w, delta) * dif
 
-            dwl = np.dot(alprec, delta.T)
-            dbl = np.sum(delta, axis=0, keepdims=True)
+            dwl = np.dot(activations[l-1], delta.T)
+            print(np.dot(activations[l-1], delta.T).shape)
+            dbl = np.sum(delta, axis=1, keepdims=True)
 
             dw.append(dwl)
             db.append(dbl)
 
-        return dw, db
+        return dw[::-1], db[::-1]
 
     def actualiseweights(self, dw, db):
+
         for l in range(1,self.nblay):
             self.parameters["w" + str(l)] -= dw[l]
             self.parameters["b" + str(l)] -= db[l]
@@ -138,14 +138,16 @@ class NN:
                 forw = self.forwardprop(pix[p].reshape(784, 1))
 
                 dw, db = self.backprop(forw[0], self.vecteur(self.vales[p]), forw[1])
-
-                self.actualiseweights(dw, db)
+                print([a.shape for a in dw])
+                print([a.shape for a in db])
+                return
+                # self.actualiseweights(dw, db)
 
     def tauxerreur(self): #go in all the test and see accuracy
         pass
 
     def vecteur(self, val):
-        return np.array([1 if i == val - 1 else 0 for i in range(10)])
+        return np.array([1 if i == val - 1 else 0 for i in range(10)]).reshape((10,1))
 
 
 val, pix = takeinputs()
