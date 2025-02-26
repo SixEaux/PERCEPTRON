@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+
 from tabulate import tabulate
 
 # Plus tard:
@@ -53,10 +54,6 @@ class NN:
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
         if errorfunc == "eqm":
             return [lambda obs, exp, nbinput=1: (np.sum((obs - exp) ** 2, axis=1)) / (2 * nbinput), lambda obs, expected, nbinput=1: (obs - expected)/nbinput]
-        elif errorfunc == "CCC":
-            return [lambda obs, expected: -np.sum(expected * np.log(np.clip(obs, 1e-7, 1 - 1e-7)), axis=1), None] #si le exp c'est un one hot ver¡cteurs
-            # si place bon output: return lambda obs, exp: -np.log(np.clip(obs, 1e-7, 1 - 1e-7)[exp, 1])
-            # il manque la diff
 
     def getfct(self, acti):
         if acti == 'sigmoid':
@@ -102,28 +99,29 @@ class NN:
 
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
-    def backprop(self, observed, expected, vieux, nbinp=1): # observed y expected vectores de nboutputs * 1
-        C = self.errorfunc(observed,expected, nbinp)
-        dCda = self.differrorfunc(observed,expected, nbinp)
-        print(dCda)
+    def backprop(self, expected, zs, activations, nbinp=1): # observed y expected vectores de nboutputs * 1
+        dw = []
+        db = []
+        delta = self.differrorfunc(activations[-1], expected, nbinp)
 
-        activ_prec, w, b, zO = vieux[-1]
-        dactivzO = self.parameters["diff" + str(self.nblay-1)](zO)
+        alprec = activations[-1]
+        dw.append(np.dot(alprec.T, delta))
+        db.append(np.sum(delta, axis=0, keepdims=True))
 
-        dO = dCda * dactivzO
+        for l in range(self.nblay-1, 0, -1):
+            w = self.parameters["w" + str(l)]
 
-        self.parameters["w" + str(self.nblay - 1)] -= self.cvcoef * np.dot(activ_prec, dO.T)
-        self.parameters["b" + str(self.nblay - 1)] -= self.cvcoef * np.sum(dO, axis=1, keepdims=True)
 
-        dL = dO
-        for i in range(self.nblay - 2, 0, -1):
-            activ_prec, w, b, z = vieux[i]
-            dactiv = self.parameters["diff" + str(i)](z)
-            dL = np.dot(self.parameters["w" + str(i + 1)], dL) * dactiv
+            alprec = activations[l]
+            delta = np.dot(delta, w.T) * alprec
 
-            self.parameters["w" + str(i)] -= self.cvcoef * np.dot(dL, activ_prec.T)
-            self.parameters["b" + str(i)] -= self.cvcoef * np.sum(dL, axis=1, keepdims=True)
-            print(self.parameters["w" + str(i)])
+            dwl = np.dot(alprec.T, delta)
+            dbl = np.sum(delta, axis=0, keepdims=True)
+
+            dw.append(dwl)
+            db.append(dbl)
+        return dw, db
+
 
     def newbackprop(self, expected, zs, activations, nbinp=1):
 
@@ -158,12 +156,12 @@ def vecteur(val):
 
 val, pix = takeinputs()
 
-lay = [(784,"input"), (4, "relu"), (10, "sigmoid")]
+lay = [(784,"input"), (4, "relu"), (6,"relu"), (10, "sigmoid")]
 
 g = NN(pix, val, lay, "eqm")
 
 
 l = g.forwardprop((pix[10].reshape(784,1))/255)
 
-g.newbackprop(l[0], vecteur(val[10]).reshape((10,1)), l[1])
+g.backprop(l[0], vecteur(val[10]).reshape((10,1)), l[1])
 
