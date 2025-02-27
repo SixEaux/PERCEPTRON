@@ -21,17 +21,17 @@ def takeinputs():
 
     with open('testval', 'rb') as f:
         qcmval = np.array(pickle.load(f))
-        petitqcmval = np.array(qcmval[0:5000])
+        petitqcmval = np.array(qcmval[0:50])
 
     with open('testpix', 'rb') as f:
         qcmpix = np.array(pickle.load(f))
-        petitqcmpix = np.array(qcmpix[0:5000])
+        petitqcmpix = np.array(qcmpix[0:50])
 
-    return valeurs, pixels
+    return valeurs, pixels, petitqcmval, petitqcmpix
 
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, *, coefcv=0.1, iterations=1):
+    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
 
@@ -41,6 +41,9 @@ class NN:
         # INPUTS POUR ENTRAINEMENT
         self.pix = pix/255 #pix de train
         self.vales = vales #val de train
+
+        self.qcmpix = qcmpix/255
+        self.qcmval = qcmval
 
         self.parameters = self.params(infolay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
 
@@ -57,7 +60,7 @@ class NN:
 
     def getfct(self, acti):
         if acti == 'sigmoid':
-            return [lambda x: 1 / (1 + np.exp(-x)), lambda x: np.exp(-x) / (1 + np.square(np.exp(-x)))]
+            return [lambda x: 1 / (1 + np.exp(-x)), lambda x: - np.exp(-x) / np.square(1 + np.exp(-x))]
 
         elif acti == 'relu':
             return [lambda x: np.where(x > 0, x, 0), lambda x: np.where(x > 0, 1, 0)]
@@ -112,7 +115,7 @@ class NN:
 
             w = self.parameters["w" + str(l+1)]
 
-            dif = self.parameters["diff" + str(l)](activations[l])
+            dif = self.parameters["diff" + str(l-1)](zs[l-1])
 
             delta = np.dot(w, delta) * dif
 
@@ -147,25 +150,40 @@ class NN:
 
                 dw, db = self.backprop(forw[0], self.vecteur(self.vales[p]), forw[1], foto)
 
-                print([a.shape for a in dw])
-                print([a.shape for a in db])
+                # print([a.shape for a in dw])
+                # print([a.shape for a in db])
 
-                # self.actualiseweights(dw, db)
-                return
+                self.actualiseweights(dw, db)
+
+    def vraievaleur(self, y):
+        return np.argmax(y)
+
     def tauxerreur(self): #go in all the test and see accuracy
-        pass
+        nbbien = 0
+        for image in range(len(self.qcmpix)):
+            foto = self.qcmpix[image].reshape(784, 1)
+            forw = self.forwardprop(foto)
+
+            observed = self.vraievaleur(forw[0])
+
+            if observed == self.qcmval[image]:
+                nbbien += 1
+
+        return nbbien
+
 
     def vecteur(self, val):
         return np.array([1 if i == val - 1 else 0 for i in range(10)]).reshape((10,1))
 
 
-val, pix = takeinputs()
+val, pix, qcmval, qcmpix = takeinputs()
 
 lay = [(784,"input"), (6,"relu"), (3,"relu"), (10, "relu")]
 
-g = NN(pix, val, lay, "eqm")
+g = NN(pix, val, lay, "eqm", qcmpix, qcmval)
 
 g.trainsimple()
 
+print(g.tauxerreur())
 
 
