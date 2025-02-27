@@ -105,23 +105,25 @@ class NN:
         delta = self.differrorfunc(activations[-1], expected, nbinp)
 
         dw.append(np.dot(activations[-2], delta.T))
-
+        print(np.dot(activations[-2], delta.T).shape)
         db.append(np.sum(delta, axis=1, keepdims=True))
 
-        for l in range(self.nblay-2, 0, -1):
+        for l in range(self.nblay-2, -1, -1):
 
             w = self.parameters["w" + str(l+1)]
 
-            dif = self.parameters["diff" + str(l)](activations[l-1])
+            dif = self.parameters["diff" + str(l+1)](activations[l-1])
 
             delta = np.dot(w, delta) * dif
 
             dwl = np.dot(activations[l-1], delta.T)
-            print(np.dot(activations[l-1], delta.T).shape)
+            # print(np.dot(activations[l-1], delta.T).shape)
             dbl = np.sum(delta, axis=1, keepdims=True)
 
             dw.append(dwl)
             db.append(dbl)
+
+
 
         return dw[::-1], db[::-1]
 
