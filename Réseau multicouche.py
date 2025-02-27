@@ -33,7 +33,7 @@ def takeinputs():
 class NN:
     def __init__(self, pix, vales, infolay, errorfunc, *, coefcv=0.1, iterations=1):
         self.iter = iterations  # nombre iteration entrainement
-        self.nblay = len(infolay) # nombre de layers
+        self.nblay = len(infolay)-1 # nombre de layers
 
         # INITIALISATION VARIABLES
         self.cvcoef = coefcv
@@ -75,10 +75,11 @@ class NN:
         param = {}
 
         for l in range(1, len(lst)):
-            param["w" + str(l)] = np.random.uniform(-1,1,(lst[l-1][0], lst[l][0]))
-            param["b" + str(l)] = np.random.uniform(-1,1,(lst[l][0], 1))
-            param["fct" + str(l)] = self.getfct(lst[l][1])[0]
-            param["diff" + str(l)] = self.getfct(lst[l][1])[1]
+            param["w" + str(l-1)] = np.random.uniform(-1, 1, (lst[l - 1][0], lst[l][0]))
+            param["b" + str(l-1)] = np.random.uniform(-1, 1, (lst[l][0], 1))
+            param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
+            param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
+
         return param
 
 
@@ -86,7 +87,7 @@ class NN:
         outlast = input
         activations = [input] #garder pour la backprop les variables
         zs = []
-        for l in range(1, self.nblay):
+        for l in range(0, self.nblay):
             w = self.parameters["w" + str(l)]
             b = self.parameters["b" + str(l)]
             z = np.dot(w.T, outlast) + b
@@ -99,20 +100,19 @@ class NN:
 
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
-    def backprop(self, expected, zs, activations, nbinp=1): # observed y expected vectores de nboutputs * 1
+    def backprop(self, expected, zs, activations, input, nbinp=1): # observed y expected vectores de nboutputs * 1
         dw = []
         db = []
         delta = self.differrorfunc(activations[-1], expected, nbinp)
 
         dw.append(np.dot(activations[-2], delta.T))
-        print(np.dot(activations[-2], delta.T).shape)
         db.append(np.sum(delta, axis=1, keepdims=True))
 
-        for l in range(self.nblay-2, -1, -1):
+        for l in range(self.nblay-2, 0, -1):
 
             w = self.parameters["w" + str(l+1)]
 
-            dif = self.parameters["diff" + str(l+1)](activations[l-1])
+            dif = self.parameters["diff" + str(l)](activations[l])
 
             delta = np.dot(w, delta) * dif
 
@@ -123,7 +123,12 @@ class NN:
             dw.append(dwl)
             db.append(dbl)
 
+        w = self.parameters["w" + str(1)]
+        dif = self.parameters["diff" + str(0)](activations[0])
+        delta = np.dot(w, delta) * dif
 
+        dw.append(np.dot(input, delta.T))
+        db.append(np.sum(delta, axis=1, keepdims=True))
 
         return dw[::-1], db[::-1]
 
@@ -137,14 +142,16 @@ class NN:
     def trainsimple(self):
         for round in range(self.iter):
             for p in range(len(self.pix)):
-                forw = self.forwardprop(pix[p].reshape(784, 1))
+                foto = pix[p].reshape(784, 1)
+                forw = self.forwardprop(foto)
 
-                dw, db = self.backprop(forw[0], self.vecteur(self.vales[p]), forw[1])
+                dw, db = self.backprop(forw[0], self.vecteur(self.vales[p]), forw[1], foto)
+
                 print([a.shape for a in dw])
                 print([a.shape for a in db])
-                return
-                # self.actualiseweights(dw, db)
 
+                # self.actualiseweights(dw, db)
+                return
     def tauxerreur(self): #go in all the test and see accuracy
         pass
 
