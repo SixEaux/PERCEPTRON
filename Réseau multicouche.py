@@ -115,7 +115,7 @@ class NN:
 
             w = self.parameters["w" + str(l+1)]
 
-            dif = self.parameters["diff" + str(l-1)](zs[l-1])
+            dif = self.parameters["diff" + str(l)](zs[l])
 
             delta = np.dot(w, delta) * dif
 
@@ -126,8 +126,8 @@ class NN:
             dw.append(dwl)
             db.append(dbl)
 
-        w = self.parameters["w" + str(1)]
-        dif = self.parameters["diff" + str(0)](activations[0])
+        w = self.parameters["w1"]
+        dif = self.parameters["diff0"](zs[0])
         delta = np.dot(w, delta) * dif
 
         dw.append(np.dot(input, delta.T))
@@ -178,7 +178,7 @@ class NN:
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-lay = [(784,"input"), (6,"relu"), (3,"relu"), (10, "relu")]
+lay = [(784,"input"), (64,"relu"), (10, "relu")]
 
 g = NN(pix, val, lay, "eqm", qcmpix, qcmval)
 
