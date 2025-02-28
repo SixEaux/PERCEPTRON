@@ -13,11 +13,11 @@ def takeinputs():
 
     with open('valeursentraine', 'rb') as f:
         valeurs = np.array(pickle.load(f))
-        vali = np.array(valeurs[:10000])
+        vali = np.array(valeurs[0:40000])
 
     with open('pixelsentraine', 'rb') as f:
         pixels = np.array(pickle.load(f))
-        pixi = np.array(pixels[:10000])
+        pixi = np.array(pixels[0:40000])
 
     with open('testval', 'rb') as f:
         qcmval = np.array(pickle.load(f))
@@ -27,8 +27,7 @@ def takeinputs():
         qcmpix = np.array(pickle.load(f))
         petitqcmpix = np.array(qcmpix[0:50])
 
-    return valeurs, pixels, petitqcmval, petitqcmpix
-
+    return valeurs, pixels, qcmval, qcmpix
 
 class NN:
     def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1):
@@ -42,7 +41,7 @@ class NN:
         self.pix = pix/255 #pix de train
         self.vales = vales #val de train
 
-        self.qcmpix = qcmpix/255
+        self.qcmpix = qcmpix
         self.qcmval = qcmval
 
         self.parameters = self.params(infolay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
@@ -56,31 +55,51 @@ class NN:
 
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
         if errorfunc == "eqm":
-            return [lambda obs, exp, nbinput=1: (np.sum((obs - exp) ** 2, axis=1)) / (2 * nbinput), lambda obs, expected, nbinput=1: (obs - expected)/nbinput]
+            def eqm(obs, exp, nbinput=1):
+                return (np.sum((obs - exp) ** 2, axis=1))/ (2 * nbinput)
+            def eqmdif(obs, expected, nbinput=1):
+                return  (obs - expected)/nbinput
+            return [eqm, eqmdif]
+
         elif errorfunc == "CEL":
-            return [lambda obs, exp, nbinput=1: -np.sum(exp * np.log(obs + 1e-9)) / nbinput, lambda obs, exp, nbinput=1: (obs - exp) / nbinput]
+            def CEL(obs, exp, nbinput=1):
+                return -np.sum(exp * np.log(obs + 1e-9)) / nbinput
+            def CELdif(obs, exp, nbinput=1):
+                return (obs - exp) / nbinput
+            return [CEL, CELdif]
 
     def getfct(self, acti):
+
         if acti == 'sigmoid':
-            return [lambda x: 1 / (1 + np.exp(-x)), lambda x: (1 / (1 + np.exp(-x))) * (1 - (1 / (1 + np.exp(-x))))]
+            def sigmoid(x):
+                return 1 / (1 + np.exp(-x))
+            def sigmoiddif(x):
+                return (1 / (1 + np.exp(-x))) * (1 - (1 / (1 + np.exp(-x))))
+            return [sigmoid, sigmoiddif]
 
         elif acti == 'relu':
-            return [lambda x: np.where(x > 0, x, 0), lambda x: np.where(x > 0, 1, 0)]
+            def relu(x):
+                return np.where(x > 0, x, 0)
+            def reludif(x):
+                return np.where(x > 0, 1, 0)
+            return [relu, reludif]
 
         elif acti == 'tanh':
-            return [lambda x: np.tanh(x), lambda x: 1 - np.square(np.tanh(x))]
-
+            def tan(x):
+                return np.tanh(x)
+            def tandiff(x):
+                return 1 - np.square(np.tanh(x))
+            return [tan, tandiff]
 
         elif acti == 'softmax':
-
             def softmax(x):
-                exp_x = np.exp(x - np.max(x))
-                return exp_x / np.sum(exp_x, axis=0, keepdims=True)
+                x = x - np.max(x, axis=0, keepdims=True)
+                exp_x = np.exp(np.clip(x, -500, 500))
+                return exp_x / (np.sum(exp_x, axis=0, keepdims=True) + 1e-9)
 
-            def softmax_derivative(output):
+            def softmaxdif(output):
                 return output * (1 - output)
-
-            return [softmax, softmax_derivative]
+            return [softmax, softmaxdif]
 
         else:
             pass
