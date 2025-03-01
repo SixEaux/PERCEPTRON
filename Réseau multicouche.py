@@ -32,7 +32,7 @@ def takeinputs():
     return valeurs, pixels, qcmval, qcmpix
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1):
+    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
 
@@ -51,6 +51,8 @@ class NN:
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
 
+        self.lenbatch = batch
+
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
 
@@ -58,8 +60,10 @@ class NN:
         param = {}
 
         for l in range(1, len(lst)):
-            param["w" + str(l-1)] = np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0])) #nbneurons * nbinput
-            param["b" + str(l-1)] = np.zeros((lst[l][0], 1))
+            param["w" + str(l-1)] = np.random.rand(lst[l][0], lst[l-1][0]) - 0.5
+            #np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(2 / lst[l-1][0])
+            # #np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0])) #nbneurons * nbinput
+            param["b" + str(l-1)] = np.random.rand(lst[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
             param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
         return param
@@ -109,6 +113,13 @@ class NN:
             def softmaxdif(output):
                 return  output * (1 - output)
             return [softmax, softmaxdif]
+
+        elif acti == "leakyrelu":
+            def leakyrelu(x):
+                return np.maximum(self.cvcoef * x, 0)
+            def leakyreludif(x):
+                return np.where(x > 0, self.cvcoef, 0)
+            return [leakyrelu, leakyreludif]
 
         else:
             pass
@@ -181,8 +192,11 @@ class NN:
 
                 self.actualiseweights(dw, db)
 
-    def vraievaleur(self, y):
+    def choix(self, y):
         return np.argmax(y)
+
+    def vecteur(self, val):
+        return np.array([1 if i == val else 0 for i in range(10)]).reshape((10,1))
 
     def tauxerreur(self): #go in all the test and see accuracy
         nbbien = 0
@@ -190,21 +204,23 @@ class NN:
             foto = self.qcmpix[image].reshape(784, 1)
             forw = self.forwardprop(foto)
 
-            observed = self.vraievaleur(forw[0])
+            observed = self.choix(forw[0])
 
             if observed == self.qcmval[image]:
                 nbbien += 1
 
         return nbbien*100 / len(self.qcmpix)
 
-    def vecteur(self, val):
-        return np.array([1 if i == val else 0 for i in range(10)]).reshape((10,1))
+    def prediction(self, image):
+        forw = self.forwardprop(image)
+        decision = self.choix(forw[0])
+        return decision
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-lay = [(784,"input"), (64,"relu"), (10, "sigmoid")]
+lay = [(784,"input"), (64,"sigmoid"), (10, "sigmoid")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10)
 
 g.trainsimple()
 
