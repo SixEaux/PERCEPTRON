@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+from scipy.special import expit
 
 from tabulate import tabulate
 
@@ -8,6 +9,7 @@ from tabulate import tabulate
 # le input est un batch en forme de matrice avec 784 lignes et 32 colonnes
 # expected will be a one hot vector
 
+np.seterr(all='raise')
 
 def takeinputs():
 
@@ -49,9 +51,18 @@ class NN:
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
 
-
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
+
+    def params(self, lst): #lst liste avec un tuple avec (nbneurons, fctactivation)
+        param = {}
+
+        for l in range(1, len(lst)):
+            param["w" + str(l-1)] = np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0])) #nbneurons * nbinput
+            param["b" + str(l-1)] = np.zeros((lst[l][0], 1))
+            param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
+            param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
+        return param
 
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
         if errorfunc == "eqm":
@@ -63,23 +74,22 @@ class NN:
 
         elif errorfunc == "CEL":
             def CEL(obs, exp, nbinput=1):
-                return -np.sum(exp * np.log(obs + 1e-9)) / nbinput
+                return -np.sum(exp * np.log(np.clip(obs, 1e-9, 1 - 1e-9)), axis=1) / nbinput
             def CELdif(obs, exp, nbinput=1):
                 return (obs - exp) / nbinput
             return [CEL, CELdif]
 
     def getfct(self, acti):
-
         if acti == 'sigmoid':
             def sigmoid(x):
-                return 1 / (1 + np.exp(-x))
+                return expit(x)
             def sigmoiddif(x):
                 return (1 / (1 + np.exp(-x))) * (1 - (1 / (1 + np.exp(-x))))
             return [sigmoid, sigmoiddif]
 
         elif acti == 'relu':
             def relu(x):
-                return np.where(x > 0, x, 0)
+                return np.maximum(x, 0)
             def reludif(x):
                 return np.where(x > 0, 1, 0)
             return [relu, reludif]
@@ -93,26 +103,15 @@ class NN:
 
         elif acti == 'softmax':
             def softmax(x):
-                x = x - np.max(x, axis=0, keepdims=True)
-                exp_x = np.exp(np.clip(x, -500, 500))
-                return exp_x / (np.sum(exp_x, axis=0, keepdims=True) + 1e-9)
+                x = x - np.max(x)
+                return np.exp(x) / np.sum(np.exp(x))
 
             def softmaxdif(output):
-                return output * (1 - output)
+                return  output * (1 - output)
             return [softmax, softmaxdif]
 
         else:
             pass
-
-    def params(self, lst): #lst liste avec un tuple avec (nbneurons, fctactivation)
-        param = {}
-
-        for l in range(1, len(lst)):
-            param["w" + str(l-1)] = np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0]))
-            param["b" + str(l-1)] = np.zeros((lst[l][0], 1))
-            param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
-            param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
-        return param
 
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
@@ -122,6 +121,20 @@ class NN:
             w = self.parameters["w" + str(l)]
             b = self.parameters["b" + str(l)]
             z = np.dot(w, outlast) + b
+            if np.isinf(z).any():
+                print("inf", np.isinf(z))
+                print("________________________________________________________________")
+                print("w", w)
+                print("________________________________________________________________")
+                print("out", outlast)
+                print("________________________________________________________________")
+                print("profuit", np.dot(w, outlast))
+                print("_______________________________________________________________")
+                print("b", b)
+                print("________________________________________________________________")
+                print("z", z)
+                print("________________________________________________________________")
+                raise Exception("something went wrong")
             a = self.parameters["fct" + str(l)](z)
 
             zs.append(z)
@@ -150,25 +163,21 @@ class NN:
             dw.append(dwl)
             db.append(dbl)
 
-        return dw[::-1], db[::-1]
+        dw, db = [np.array(a) for a in dw[::-1]], [np.array(a) for a in db[::-1]]
+        return dw, db
 
     def actualiseweights(self, dw, db):
-
         for l in range(0,self.nblay):
             self.parameters["w" + str(l)] -= self.cvcoef * dw[l]
             self.parameters["b" + str(l)] -= self.cvcoef * db[l]
 
-
     def trainsimple(self):
-        for round in range(self.iter):
+        for _ in range(self.iter):
             for p in range(len(self.pix)):
                 foto = self.pix[p].reshape(784, 1)
                 forw = self.forwardprop(foto)
 
                 dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2])
-
-                # print([a.shape for a in dw])
-                # print([a.shape for a in db])
 
                 self.actualiseweights(dw, db)
 
@@ -189,16 +198,13 @@ class NN:
         return nbbien*100 / len(self.qcmpix)
 
     def vecteur(self, val):
-        return np.array([1 if i == val - 1 else 0 for i in range(10)]).reshape((10,1))
-
+        return np.array([1 if i == val else 0 for i in range(10)]).reshape((10,1))
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-lay = [(784,"input"), (64,"relu"), (10, "softmax")]
+lay = [(784,"input"), (64,"relu"), (10, "sigmoid")]
 
 g = NN(pix, val, lay, "CEL", qcmpix, qcmval)
-
-f = g.forwardprop((pix[10]/255).reshape(784, 1))
 
 g.trainsimple()
 
