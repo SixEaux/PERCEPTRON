@@ -42,7 +42,6 @@ class NN:
 
         # INPUTS POUR ENTRAINEMENT
         self.pix = self.processdata(pix, qcm=False) #pix de train
-        self.printbasesimple(self.pix[10])
         self.vales = vales #val de train
 
         self.qcmpix = self.processdata(qcmpix, qcm=True)
@@ -163,7 +162,7 @@ class NN:
 
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
-    def backprop(self, expected, zs, activations, nbinp=1):
+    def backprop(self, expected, zs, activations, nbinp):
         dw = []
         db = []
         delta = self.differrorfunc(activations[-1], expected, nbinp)
@@ -186,22 +185,24 @@ class NN:
         dw, db = [np.array(a) for a in dw[::-1]], [np.array(a) for a in db[::-1]]
         return dw, db
 
-    def actualiseweights(self, dw, db):
+    def actualiseweights(self, dw, db, nbinput):
         for l in range(0,self.nblay):
-            self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/self.lenbatch)
-            self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/self.lenbatch)
+            self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/nbinput)
+            self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/nbinput)
 
     def trainsimple(self):
         for _ in range(self.iter):
             for p in range(len(self.pix)):
+                nbinputs = self.pix[p].shape[1]
+
                 forw = self.forwardprop(self.pix[p])
 
-                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], self.lenbatch)
+                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], nbinputs)
 
-                self.actualiseweights(dw, db)
+                self.actualiseweights(dw, db, nbinputs)
 
     def choix(self, y):
-        return np.argmax(y)
+        return np.argmax(y,axis=0)
 
     def vecteur(self, val):
         return np.array([1 if i == val else 0 for i in range(10)]).reshape((10,1))

@@ -1,14 +1,14 @@
 import numpy as np
 import pickle
 from scipy.special import expit
-from more_itertools import chunked
+# from itertools import batched
 
 from tabulate import tabulate
 
 # Plus tard:
 # do method with batchs to do it directly with 32 for example
 # le input est un batch en forme de matrice avec 784 lignes et 32 colonnes
-
+# expected will be a one hot vector
 
 np.seterr(all='raise')
 
@@ -42,7 +42,6 @@ class NN:
 
         # INPUTS POUR ENTRAINEMENT
         self.pix = self.processdata(pix, qcm=False) #pix de train
-        self.printbasesimple(self.pix[10])
         self.vales = vales #val de train
 
         self.qcmpix = self.processdata(qcmpix, qcm=True)
@@ -52,6 +51,8 @@ class NN:
 
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
+
+        self.lenbatch = batch
 
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
@@ -161,7 +162,7 @@ class NN:
 
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
-    def backprop(self, expected, zs, activations, nbinp=1):
+    def backprop(self, expected, zs, activations, nbinp):
         dw = []
         db = []
         delta = self.differrorfunc(activations[-1], expected, nbinp)
@@ -184,7 +185,7 @@ class NN:
         dw, db = [np.array(a) for a in dw[::-1]], [np.array(a) for a in db[::-1]]
         return dw, db
 
-    def actualiseweights(self, dw, db, nbinput=1):
+    def actualiseweights(self, dw, db, nbinput):
         for l in range(0,self.nblay):
             self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/nbinput)
             self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/nbinput)
@@ -192,14 +193,16 @@ class NN:
     def trainsimple(self):
         for _ in range(self.iter):
             for p in range(len(self.pix)):
+                nbinputs = self.pix[p].shape[1]
+
                 forw = self.forwardprop(self.pix[p])
 
-                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], len(self.pix[p].shape[1]))
+                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], nbinputs)
 
-                self.actualiseweights(dw, db)
+                self.actualiseweights(dw, db, nbinputs)
 
     def choix(self, y):
-        return np.argmax(y)
+        return np.argmax(y,axis=0)
 
     def vecteur(self, val):
         return np.array([1 if i == val else 0 for i in range(10)]).reshape((10,1))
