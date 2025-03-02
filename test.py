@@ -1,7 +1,7 @@
 import numpy as np
 import pickle
 from scipy.special import expit
-# from itertools import batched
+from more_itertools import chunked
 
 from tabulate import tabulate
 
@@ -36,6 +36,7 @@ class NN:
     def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
+        self.lenbatch = batch
 
         # INITIALISATION VARIABLES
         self.cvcoef = coefcv
@@ -52,7 +53,7 @@ class NN:
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
 
-        self.lenbatch = batch
+
 
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
@@ -62,6 +63,7 @@ class NN:
             datamod = [np.array(a).reshape(784, 1) for a in pix]
         else:
             datamod = [(np.array(a)/255).reshape(784, 1) for a in pix]
+
         return datamod
 
     def params(self, lst): #lst liste avec un tuple avec (nbneurons, fctactivation)
@@ -78,32 +80,35 @@ class NN:
 
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
         if errorfunc == "eqm":
-            def eqm(obs, exp, nbinput=1):
+            def eqm(obs, exp, nbinput):
                 return (np.sum((obs - exp) ** 2, axis=1))/ (2 * nbinput)
-            def eqmdif(obs, expected, nbinput=1):
+            def eqmdif(obs, expected, nbinput):
                 return  (obs - expected)/nbinput
             return [eqm, eqmdif]
 
         elif errorfunc == "CEL":
-            def CEL(obs, exp, nbinput=1):
+            def CEL(obs, exp, nbinput):
                 return -np.sum(exp * np.log(np.clip(obs, 1e-9, 1 - 1e-9)), axis=1) / nbinput
-            def CELdif(obs, exp, nbinput=1):
+            def CELdif(obs, exp, nbinput):
                 return (obs - exp) / nbinput
             return [CEL, CELdif]
+
+        else:
+            raise ValueError("errorfunc must be specified")
 
     def getfct(self, acti):
         if acti == 'sigmoid':
             def sigmoid(x):
                 return expit(x)
             def sigmoiddif(x):
-                return (1 / (1 + np.exp(-x))) * (1 - (1 / (1 + np.exp(-x))))
+                return (expit(x)) * (1 - expit(x))
             return [sigmoid, sigmoiddif]
 
         elif acti == 'relu':
             def relu(x):
                 return np.maximum(x, 0)
             def reludif(x):
-                return np.where(x > 0, 1, 0)
+                return np.where(x >= 0, 1, 0)
             return [relu, reludif]
 
         elif acti == 'tanh':
@@ -130,7 +135,7 @@ class NN:
             return [leakyrelu, leakyreludif]
 
         else:
-            pass
+            raise "You forgot to specify the activation function"
 
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
@@ -193,16 +198,39 @@ class NN:
     def trainsimple(self):
         for _ in range(self.iter):
             for p in range(len(self.pix)):
-                nbinputs = self.pix[p].shape[1]
-
                 forw = self.forwardprop(self.pix[p])
 
-                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], nbinputs)
+                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
-                self.actualiseweights(dw, db, nbinputs)
+                self.actualiseweights(dw, db, 1)
+
+    def trainbatch(self):
+        for _ in range(self.iter):
+            nbbatches = len(self.pix) // self.lenbatch
+            for batch in range(nbbatches):
+                dw = []
+                db = []
+
+                for p in range(batch*self.lenbatch, (batch+1)*self.lenbatch):
+
+                    forw = self.forwardprop(self.pix[p])
+
+                    dwb, dbb = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+
+
+                    dw.append(dwb)
+                    db.append(dbb)
+
+                dw = np.array(dw)
+                db = np.array(db)
+
+                np.sum(dw, axis=1, keepdims=True)
+                np.sum(db, axis=1, keepdims=True)
+
+                self.actualiseweights(dw, db, 1)
 
     def choix(self, y):
-        return np.argmax(y,axis=0)
+        return np.argmax(y)
 
     def vecteur(self, val):
         return np.array([1 if i == val else 0 for i in range(10)]).reshape((10,1))
@@ -226,10 +254,10 @@ class NN:
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-lay = [(784,"input"), (64,"sigmoid"), (10, "sigmoid")]
+lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=1)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
 
-g.trainsimple()
+g.trainbatch()
 
 print(g.tauxerreur())
