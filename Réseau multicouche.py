@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 from scipy.special import expit
+# from itertools import batched
 
 from tabulate import tabulate
 
@@ -14,19 +15,19 @@ np.seterr(all='raise')
 def takeinputs():
 
     with open('valeursentraine', 'rb') as f:
-        valeurs = np.array(pickle.load(f))
+        valeurs = pickle.load(f)
         vali = np.array(valeurs[0:40000])
 
     with open('pixelsentraine', 'rb') as f:
-        pixels = np.array(pickle.load(f))
+        pixels = pickle.load(f)
         pixi = np.array(pixels[0:40000])
 
     with open('testval', 'rb') as f:
-        qcmval = np.array(pickle.load(f))
+        qcmval = pickle.load(f)
         petitqcmval = np.array(qcmval[0:50])
 
     with open('testpix', 'rb') as f:
-        qcmpix = np.array(pickle.load(f))
+        qcmpix = pickle.load(f)
         petitqcmpix = np.array(qcmpix[0:50])
 
     return valeurs, pixels, qcmval, qcmpix
@@ -40,10 +41,11 @@ class NN:
         self.cvcoef = coefcv
 
         # INPUTS POUR ENTRAINEMENT
-        self.pix = pix/255 #pix de train
+        self.pix = self.processdata(pix, qcm=False) #pix de train
+        self.printbasesimple(self.pix[10])
         self.vales = vales #val de train
 
-        self.qcmpix = qcmpix
+        self.qcmpix = self.processdata(qcmpix, qcm=True)
         self.qcmval = qcmval
 
         self.parameters = self.params(infolay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
@@ -55,6 +57,13 @@ class NN:
 
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
+
+    def processdata(self, pix, qcm): #mettre les donnees sous la bonne forme
+        if qcm:
+            datamod = [np.array(a).reshape(784, 1) for a in pix]
+        else:
+            datamod = [(np.array(a)/255).reshape(784, 1) for a in pix]
+        return datamod
 
     def params(self, lst): #lst liste avec un tuple avec (nbneurons, fctactivation)
         param = {}
@@ -179,16 +188,15 @@ class NN:
 
     def actualiseweights(self, dw, db):
         for l in range(0,self.nblay):
-            self.parameters["w" + str(l)] -= self.cvcoef * dw[l]
-            self.parameters["b" + str(l)] -= self.cvcoef * db[l]
+            self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/self.lenbatch)
+            self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/self.lenbatch)
 
     def trainsimple(self):
         for _ in range(self.iter):
             for p in range(len(self.pix)):
-                foto = self.pix[p].reshape(784, 1)
-                forw = self.forwardprop(foto)
+                forw = self.forwardprop(self.pix[p])
 
-                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2])
+                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], self.lenbatch)
 
                 self.actualiseweights(dw, db)
 
@@ -201,8 +209,7 @@ class NN:
     def tauxerreur(self): #go in all the test and see accuracy
         nbbien = 0
         for image in range(len(self.qcmpix)):
-            foto = self.qcmpix[image].reshape(784, 1)
-            forw = self.forwardprop(foto)
+            forw = self.forwardprop(self.qcmpix[image])
 
             observed = self.choix(forw[0])
 
@@ -220,7 +227,7 @@ val, pix, qcmval, qcmpix = takeinputs()
 
 lay = [(784,"input"), (64,"sigmoid"), (10, "sigmoid")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=1)
 
 g.trainsimple()
 

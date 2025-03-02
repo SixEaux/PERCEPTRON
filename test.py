@@ -1,33 +1,33 @@
 import numpy as np
 import pickle
 from scipy.special import expit
-# from itertools import batched
+from more_itertools import chunked
 
 from tabulate import tabulate
 
 # Plus tard:
 # do method with batchs to do it directly with 32 for example
 # le input est un batch en forme de matrice avec 784 lignes et 32 colonnes
-# expected will be a one hot vector
+
 
 np.seterr(all='raise')
 
 def takeinputs():
 
     with open('valeursentraine', 'rb') as f:
-        valeurs = np.array(pickle.load(f))
+        valeurs = pickle.load(f)
         vali = np.array(valeurs[0:40000])
 
     with open('pixelsentraine', 'rb') as f:
-        pixels = np.array(pickle.load(f))
+        pixels = pickle.load(f)
         pixi = np.array(pixels[0:40000])
 
     with open('testval', 'rb') as f:
-        qcmval = np.array(pickle.load(f))
+        qcmval = pickle.load(f)
         petitqcmval = np.array(qcmval[0:50])
 
     with open('testpix', 'rb') as f:
-        qcmpix = np.array(pickle.load(f))
+        qcmpix = pickle.load(f)
         petitqcmpix = np.array(qcmpix[0:50])
 
     return valeurs, pixels, qcmval, qcmpix
@@ -41,11 +41,11 @@ class NN:
         self.cvcoef = coefcv
 
         # INPUTS POUR ENTRAINEMENT
-        self.pix = self.processdata(pix) #pix de train
-        print(self.pix.shape)
+        self.pix = self.processdata(pix, qcm=False) #pix de train
+        self.printbasesimple(self.pix[10])
         self.vales = vales #val de train
 
-        self.qcmpix = qcmpix
+        self.qcmpix = self.processdata(qcmpix, qcm=True)
         self.qcmval = qcmval
 
         self.parameters = self.params(infolay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
@@ -53,15 +53,14 @@ class NN:
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
 
-        self.lenbatch = batch
-
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
 
-    def processdata(self, pix): #mettre les donnees sous la bonne forme
-        data = pix/255
-        print(data[:5])
-        datamod = np.array([np.array(a).reshape(784,1) for a in data])
+    def processdata(self, pix, qcm): #mettre les donnees sous la bonne forme
+        if qcm:
+            datamod = [np.array(a).reshape(784, 1) for a in pix]
+        else:
+            datamod = [(np.array(a)/255).reshape(784, 1) for a in pix]
         return datamod
 
     def params(self, lst): #lst liste avec un tuple avec (nbneurons, fctactivation)
@@ -185,17 +184,17 @@ class NN:
         dw, db = [np.array(a) for a in dw[::-1]], [np.array(a) for a in db[::-1]]
         return dw, db
 
-    def actualiseweights(self, dw, db):
+    def actualiseweights(self, dw, db, nbinput=1):
         for l in range(0,self.nblay):
-            self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/self.lenbatch)
-            self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/self.lenbatch)
+            self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/nbinput)
+            self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/nbinput)
 
     def trainsimple(self):
         for _ in range(self.iter):
             for p in range(len(self.pix)):
-                forw = self.forwardprop(self.pix[p].reshape((784,1)))
+                forw = self.forwardprop(self.pix[p])
 
-                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], self.lenbatch)
+                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], len(self.pix[p].shape[1]))
 
                 self.actualiseweights(dw, db)
 
@@ -227,7 +226,7 @@ val, pix, qcmval, qcmpix = takeinputs()
 lay = [(784,"input"), (64,"sigmoid"), (10, "sigmoid")]
 
 g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=1)
-#
-# g.trainsimple()
-#
-# print(g.tauxerreur())
+
+g.trainsimple()
+
+print(g.tauxerreur())
