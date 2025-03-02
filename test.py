@@ -42,6 +42,7 @@ class NN:
 
         # INPUTS POUR ENTRAINEMENT
         self.pix = self.processdata(pix) #pix de train
+        print(self.pix.shape)
         self.vales = vales #val de train
 
         self.qcmpix = qcmpix
@@ -59,7 +60,8 @@ class NN:
 
     def processdata(self, pix): #mettre les donnees sous la bonne forme
         data = pix/255
-        datamod = [np.array(a).reshape(784,1) for a in data]
+        print(data[:5])
+        datamod = np.array([np.array(a).reshape(784,1) for a in data])
         return datamod
 
     def params(self, lst): #lst liste avec un tuple avec (nbneurons, fctactivation)
@@ -225,7 +227,7 @@ val, pix, qcmval, qcmpix = takeinputs()
 lay = [(784,"input"), (64,"sigmoid"), (10, "sigmoid")]
 
 g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=1)
-
-g.trainsimple()
-
-print(g.tauxerreur())
+#
+# g.trainsimple()
+#
+# print(g.tauxerreur())
