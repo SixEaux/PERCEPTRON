@@ -167,7 +167,7 @@ class NN:
 
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
-    def backprop(self, expected, zs, activations, nbinp):
+    def backpropsimple(self, expected, zs, activations, nbinp):
         dw = []
         db = []
         delta = self.differrorfunc(activations[-1], expected, nbinp)
@@ -187,8 +187,9 @@ class NN:
             dw.append(dwl)
             db.append(dbl)
 
-        dw, db = [np.array(a) for a in dw[::-1]], [np.array(a) for a in db[::-1]]
-        return dw, db
+        dwordre, dbordre = [np.array(a) for a in dw[::-1]], [np.array(a) for a in db[::-1]]
+
+        return dwordre, dbordre
 
     def actualiseweights(self, dw, db, nbinput):
         for l in range(0,self.nblay):
@@ -200,34 +201,37 @@ class NN:
             for p in range(len(self.pix)):
                 forw = self.forwardprop(self.pix[p])
 
-                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+                dw, db = self.backpropsimple(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
                 self.actualiseweights(dw, db, 1)
 
     def trainbatch(self):
-        for _ in range(self.iter):
+        for e in range(self.iter):
             nbbatches = len(self.pix) // self.lenbatch
             for batch in range(nbbatches):
-                dw = []
-                db = []
+                dw = [[] for _ in range(self.nblay)]
+                db = [[] for _ in range(self.nblay)]
 
                 for p in range(batch*self.lenbatch, (batch+1)*self.lenbatch):
 
                     forw = self.forwardprop(self.pix[p])
 
-                    dwb, dbb = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+                    dwp, dbp = self.backpropsimple(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
+                    for l in range(len(dw)):
+                        dw[l].append(dwp[l])
+                        db[l].append(dbp[l])
 
-                    dw.append(dwb)
-                    db.append(dbb)
+                    print(dw[0])
+                    print(db[0])
 
-                dw = np.array(dw)
-                db = np.array(db)
+                dwtot = [np.sum(np.array(a), axis=1, keepdims=True) for a in dw]
+                dbtot = [np.sum(np.array(a), axis=1, keepdims=True) for a in db]
 
-                np.sum(dw, axis=1, keepdims=True)
-                np.sum(db, axis=1, keepdims=True)
+                print([a.shape for a in dwtot])
+                print([a.shape for a in dbtot])
 
-                self.actualiseweights(dw, db, 1)
+                self.actualiseweights(dwtot, dbtot, 1)
 
     def choix(self, y):
         return np.argmax(y)
