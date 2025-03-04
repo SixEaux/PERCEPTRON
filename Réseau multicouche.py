@@ -15,19 +15,15 @@ def takeinputs():
 
     with open('valeursentraine', 'rb') as f:
         valeurs = pickle.load(f)
-        vali = np.array(valeurs[0:40000])
 
     with open('pixelsentraine', 'rb') as f:
-        pixels = pickle.load(f)
-        pixi = np.array(pixels[0:40000])
+        pixels = np.array(pickle.load(f)).T
 
     with open('testval', 'rb') as f:
         qcmval = pickle.load(f)
-        petitqcmval = np.array(qcmval[0:50])
 
     with open('testpix', 'rb') as f:
-        qcmpix = pickle.load(f)
-        petitqcmpix = np.array(qcmpix[0:50])
+        qcmpix = np.array(pickle.load(f)).T
 
     return valeurs, pixels, qcmval, qcmpix
 
@@ -60,9 +56,9 @@ class NN:
 
     def processdata(self, pix, qcm): #mettre les donnees sous la bonne forme
         if qcm:
-            datamod = [np.array(a).reshape(784, 1) for a in pix]
+            datamod = pix
         else:
-            datamod = [(np.array(a)/255).reshape(784, 1) for a in pix]
+            datamod = pix/255
 
         return datamod
 
@@ -118,20 +114,24 @@ class NN:
                 return 1 - np.square(np.tanh(x))
             return [tan, tandiff]
 
-        elif acti == 'softmax':
-            def softmax(x):
+
+        elif acti == 'softmaxaprox':
+            def softmaxaprox(x):
                 x = x - np.max(x)
                 return np.exp(x) / np.sum(np.exp(x))
 
-            def softmaxdif(output):
-                return  output * (1 - output)
-            return [softmax, softmaxdif]
+            def softmaxaproxdif(output):
+                return output * (1 - output)
+
+            return [softmaxaprox, softmaxaproxdif]
 
         elif acti == "leakyrelu":
             def leakyrelu(x):
                 return np.maximum(self.cvcoef * x, 0)
+
             def leakyreludif(x):
                 return np.where(x > 0, self.cvcoef, 0)
+
             return [leakyrelu, leakyreludif]
 
         else:
@@ -167,13 +167,14 @@ class NN:
 
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
-    def backpropsimple(self, expected, zs, activations, nbinp):
-        dw = []
-        db = []
+    def backprop(self, expected, zs, activations, nbinp):
+        dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
+        db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
+
         delta = self.differrorfunc(activations[-1], expected, nbinp)
 
-        dw.append(np.dot(delta, activations[-2].T))
-        db.append(np.sum(delta, axis=1, keepdims=True))
+        dw[-1] += np.dot(delta, activations[-2].T)
+        db[-1] += np.sum(delta, axis=1, keepdims=True)
 
         for l in range(self.nblay - 2, -1, -1):
             w = self.parameters["w" + str(l + 1)]
@@ -184,12 +185,10 @@ class NN:
             dwl = np.dot(delta, activations[l].T)
             dbl = np.sum(delta, axis=1, keepdims=True)
 
-            dw.append(dwl)
-            db.append(dbl)
+            dw[l] += dwl
+            db[l] += dbl
 
-        dwordre, dbordre = [np.array(a) for a in dw[::-1]], [np.array(a) for a in db[::-1]]
-
-        return dwordre, dbordre
+        return dw, db
 
     def actualiseweights(self, dw, db, nbinput):
         for l in range(0,self.nblay):
@@ -198,29 +197,22 @@ class NN:
 
     def trainsimple(self):
         for _ in range(self.iter):
-            for p in range(len(self.pix)):
-                forw = self.forwardprop(self.pix[p])
+            for p in range(self.pix.shape[1]):
+                forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
 
-                dw, db = self.backpropsimple(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
                 self.actualiseweights(dw, db, 1)
 
     def trainbatch(self):
-        for e in range(self.iter):
-            nbbatches = len(self.pix) // self.lenbatch
-            for batch in range(nbbatches):
-                dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
-                db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
+        for _ in range(self.iter):
+            nbbatch = self.pix.shape[1] // self.lenbatch
+            for bat in range(nbbatch):
+                matrice = self.pix[:, bat*self.lenbatch:(bat+1)*self.lenbatch].reshape(-1, self.lenbatch)
 
-                for p in range(batch*self.lenbatch, (batch+1)*self.lenbatch):
+                forw = self.forwardprop(matrice)
 
-                    forw = self.forwardprop(self.pix[p])
-
-                    dwp, dbp = self.backpropsimple(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
-
-                    for i in range(self.nblay):
-                        dw[i] += dwp[i]
-                        db[i] += dbp[i]
+                dw, db = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
 
                 self.actualiseweights(dw, db, self.lenbatch)
 
@@ -230,17 +222,20 @@ class NN:
     def vecteur(self, val):
         return np.array([1 if i == val else 0 for i in range(10)]).reshape((10,1))
 
+    def vecteurbatch(self, val):
+        return np.array([[1 if i == val[j] else 0 for i in range(10)] for j in range(len(val))]).reshape((10,self.lenbatch))
+
     def tauxerreur(self): #go in all the test and see accuracy
         nbbien = 0
-        for image in range(len(self.qcmpix)):
-            forw = self.forwardprop(self.qcmpix[image])
+        for image in range(self.qcmpix.shape[1]):
+            forw = self.forwardprop(self.qcmpix[:, image].reshape(-1,1))
 
             observed = self.choix(forw[0])
 
             if observed == self.qcmval[image]:
                 nbbien += 1
 
-        return nbbien*100 / len(self.qcmpix)
+        return nbbien*100 / self.qcmpix.shape[1]
 
     def prediction(self, image):
         forw = self.forwardprop(image)
@@ -249,9 +244,9 @@ class NN:
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
+lay = [(784,"input"), (64,"sigmoid"), (10, "softmaxaprox")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=32)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
 
 g.trainbatch()
 
