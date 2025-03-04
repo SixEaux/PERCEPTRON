@@ -66,8 +66,7 @@ class NN:
         param = {}
 
         for l in range(1, len(lst)):
-            param["w" + str(l-1)] = np.random.rand(lst[l][0], lst[l-1][0]) - 0.5
-            #np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(2 / lst[l-1][0])
+            param["w" + str(l-1)] = np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(2 / lst[l-1][0])
             # #np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0])) #nbneurons * nbinput
             param["b" + str(l-1)] = np.random.rand(lst[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
