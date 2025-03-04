@@ -1,5 +1,7 @@
 import numpy as np
 import pickle
+
+from matplotlib import pyplot as plt
 from scipy.special import expit
 
 from tabulate import tabulate
@@ -191,6 +193,8 @@ class NN:
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
     def backprop(self, expected, zs, activations, nbinp):
+        C = self.errorfunc(activations[-1], expected, nbinp)
+
         dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
         db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
 
@@ -211,23 +215,30 @@ class NN:
             dw[l] += dwl
             db[l] += dbl
 
-        return dw, db
+        return dw, db, C
 
     def actualiseweights(self, dw, db, nbinput):
         for l in range(0,self.nblay):
             self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/nbinput)
             self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/nbinput)
+        return
 
     def trainsimple(self):
+        # Ctot = []
         for _ in range(self.iter):
             for p in range(self.pix.shape[1]):
                 forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
 
-                dw, db = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+                dw, db, loss = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+
+                # Ctot.append(loss)
 
                 self.actualiseweights(dw, db, 1)
 
+        return #Ctot
+
     def trainbatch(self):
+        # Ctot = []
         for _ in range(self.iter):
             nbbatch = self.pix.shape[1] // self.lenbatch
             for bat in range(nbbatch):
@@ -235,9 +246,12 @@ class NN:
 
                 forw = self.forwardprop(matrice)
 
-                dw, db = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
+                dw, db, loss = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
+
+                # Ctot.append(loss)
 
                 self.actualiseweights(dw, db, self.lenbatch)
+        return #Ctot
 
     def train(self):
         if self.lenbatch > 1:
@@ -273,10 +287,13 @@ class NN:
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-lay = [(784,"input"), (128, "sigmoid"), (64,"sigmoid"), (10, "softmax")]
+lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=15, batch=1)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=3, batch=1)
 
 g.train()
+
+# plt.plot([i for i in range(len(a))], a, marker='o', linestyle='-', color='b', label="Loss function")
+# plt.show()
 
 print(g.tauxerreur())
