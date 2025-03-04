@@ -1,7 +1,6 @@
 import numpy as np
 import pickle
 from scipy.special import expit
-from more_itertools import chunked
 
 from tabulate import tabulate
 
@@ -49,7 +48,8 @@ class NN:
         self.qcmval = qcmval
 
         self.parameters = self.params(infolay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
-
+        self.dimweights = [(infolay[l][0], infolay[l-1][0]) for l in range(1, len(infolay))]
+        print(self.dimweights)
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
 
@@ -209,8 +209,8 @@ class NN:
         for e in range(self.iter):
             nbbatches = len(self.pix) // self.lenbatch
             for batch in range(nbbatches):
-                dw = [[] for _ in range(self.nblay)]
-                db = [[] for _ in range(self.nblay)]
+                dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
+                db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
 
                 for p in range(batch*self.lenbatch, (batch+1)*self.lenbatch):
 
@@ -218,20 +218,11 @@ class NN:
 
                     dwp, dbp = self.backpropsimple(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
-                    for l in range(len(dw)):
-                        dw[l].append(dwp[l])
-                        db[l].append(dbp[l])
+                    for i in range(self.nblay):
+                        dw[i] += dwp[i]
+                        db[i] += dbp[i]
 
-                    print(dw[0])
-                    print(db[0])
-
-                dwtot = [np.sum(np.array(a), axis=1, keepdims=True) for a in dw]
-                dbtot = [np.sum(np.array(a), axis=1, keepdims=True) for a in db]
-
-                print([a.shape for a in dwtot])
-                print([a.shape for a in dbtot])
-
-                self.actualiseweights(dwtot, dbtot, 1)
+                self.actualiseweights(dw, db, self.lenbatch)
 
     def choix(self, y):
         return np.argmax(y)
@@ -260,8 +251,8 @@ val, pix, qcmval, qcmpix = takeinputs()
 
 lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=32)
 
-g.trainsimple()
+g.trainbatch()
 
 print(g.tauxerreur())

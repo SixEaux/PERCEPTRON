@@ -1,7 +1,6 @@
 import numpy as np
 import pickle
 from scipy.special import expit
-# from itertools import batched
 
 from tabulate import tabulate
 
