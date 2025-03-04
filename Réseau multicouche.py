@@ -14,7 +14,7 @@ np.seterr(all='raise')
 def takeinputs():
 
     with open('valeursentraine', 'rb') as f:
-        valeurs = pickle.load(f)
+        valeurs = np.array(pickle.load(f))
 
     with open('pixelsentraine', 'rb') as f:
         pixels = np.array(pickle.load(f)).T
@@ -25,7 +25,12 @@ def takeinputs():
     with open('testpix', 'rb') as f:
         qcmpix = np.array(pickle.load(f)).T
 
-    return valeurs, pixels, qcmval, qcmpix
+    perm = np.random.permutation(pixels.shape[1])
+
+    pixmelange = pixels[:, perm]
+    valmelange = valeurs[perm]
+
+    return valmelange, pixmelange, qcmval, qcmpix
 
 class NN:
     def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1):
@@ -59,6 +64,7 @@ class NN:
             datamod = pix
         else:
             datamod = pix/255
+            # datamod = dat[:, np.random.permutation(dat.shape[1])]
 
         return datamod
 
@@ -66,7 +72,7 @@ class NN:
         param = {}
 
         for l in range(1, len(lst)):
-            param["w" + str(l-1)] = np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(2 / lst[l-1][0])
+            param["w" + str(l-1)] = np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(1 / lst[l-1][0])
             # #np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0])) #nbneurons * nbinput
             param["b" + str(l-1)] = np.random.rand(lst[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
@@ -76,14 +82,14 @@ class NN:
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
         if errorfunc == "eqm":
             def eqm(obs, exp, nbinput):
-                return (np.sum((obs - exp) ** 2, axis=1))/ (2 * nbinput)
+                return (np.sum((obs - exp) ** 2, axis=0))/ (2 * nbinput)
             def eqmdif(obs, expected, nbinput):
                 return  (obs - expected)/nbinput
             return [eqm, eqmdif]
 
         elif errorfunc == "CEL":
             def CEL(obs, exp, nbinput):
-                return -np.sum(exp * np.log(np.clip(obs, 1e-9, 1 - 1e-9)), axis=1) / nbinput
+                return -np.sum(exp * np.log(np.clip(obs, 1e-9, 1 - 1e-9)), axis=0) / nbinput
             def CELdif(obs, exp, nbinput):
                 return (obs - exp) / nbinput
             return [CEL, CELdif]
@@ -115,6 +121,16 @@ class NN:
 
 
         elif acti == 'softmaxaprox':
+            def softmaxaprox(x):
+                x = x - np.max(x, axis=0, keepdims=True)
+                return np.exp(x) / np.sum(np.exp(x), axis=0, keepdims=True)
+
+            def softmaxaproxdif(output):
+                return output * (1 - output)
+
+            return [softmaxaprox, softmaxaproxdif]
+
+        elif acti == 'softmax':
             def softmaxaprox(x):
                 x = x - np.max(x, axis=0, keepdims=True)
                 return np.exp(x) / np.sum(np.exp(x), axis=0, keepdims=True)
@@ -215,14 +231,20 @@ class NN:
 
                 self.actualiseweights(dw, db, self.lenbatch)
 
+    def train(self):
+        if self.lenbatch > 1:
+            self.trainbatch()
+        elif self.lenbatch == 1:
+            self.trainsimple()
+
     def choix(self, y):
-        return np.argmax(y)
+        return np.argmax(y,axis=0, keepdims=True)
 
     def vecteur(self, val):
-        return np.array([1 if i == val else 0 for i in range(10)]).reshape((10,1))
+        return np.eye(10)[[val]].T
 
     def vecteurbatch(self, val):
-        return np.array([[1 if i == val[j] else 0 for i in range(10)] for j in range(len(val))]).reshape((10,self.lenbatch))
+        return np.eye(10)[val].T
 
     def tauxerreur(self): #go in all the test and see accuracy
         nbbien = 0
@@ -245,8 +267,8 @@ val, pix, qcmval, qcmpix = takeinputs()
 
 lay = [(784,"input"), (64,"sigmoid"), (10, "softmaxaprox")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=30, batch=1)
 
-g.trainbatch()
+g.train()
 
 print(g.tauxerreur())
