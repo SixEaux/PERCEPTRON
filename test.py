@@ -262,6 +262,6 @@ lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
 g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
 
-g.trainbatch()
+g.trainsimple()
 
 print(g.tauxerreur())
