@@ -5,9 +5,8 @@ from scipy.special import expit
 from tabulate import tabulate
 
 # Plus tard:
-# do method with batchs to do it directly with 32 for example
-# le input est un batch en forme de matrice avec 784 lignes et 32 colonnes
-# expected will be a one hot vector
+#Adam pour learning rate adaptatif
+
 
 np.seterr(all='raise')
 
@@ -119,7 +118,6 @@ class NN:
                 return 1 - np.square(np.tanh(x))
             return [tan, tandiff]
 
-
         elif acti == 'softmaxaprox':
             def softmaxaprox(x):
                 x = x - np.max(x, axis=0, keepdims=True)
@@ -131,14 +129,24 @@ class NN:
             return [softmaxaprox, softmaxaproxdif]
 
         elif acti == 'softmax':
-            def softmaxaprox(x):
+            def softmax(x):
                 x = x - np.max(x, axis=0, keepdims=True)
                 return np.exp(x) / np.sum(np.exp(x), axis=0, keepdims=True)
 
-            def softmaxaproxdif(output):
-                return output * (1 - output)
+            def softmaxdif(output):
+                n = output.shape[0]
+                jacobian = np.zeros((n, n))
 
-            return [softmaxaprox, softmaxaproxdif]
+                for i in range(n):
+                    for j in range(n):
+                        if i == j:
+                            jacobian[i, j] = output[i] * (1 - output[i])
+                        else:
+                            jacobian[i, j] = -output[i] * output[j]
+
+                return jacobian
+
+            return [softmax, softmaxdif]
 
         elif acti == "leakyrelu":
             def leakyrelu(x):
@@ -265,9 +273,9 @@ class NN:
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-lay = [(784,"input"), (64,"sigmoid"), (10, "softmaxaprox")]
+lay = [(784,"input"), (128, "sigmoid"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=30, batch=1)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=15, batch=1)
 
 g.train()
 
