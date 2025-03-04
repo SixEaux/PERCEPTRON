@@ -117,8 +117,8 @@ class NN:
 
         elif acti == 'softmaxaprox':
             def softmaxaprox(x):
-                x = x - np.max(x)
-                return np.exp(x) / np.sum(np.exp(x))
+                x = x - np.max(x, axis=0, keepdims=True)
+                return np.exp(x) / np.sum(np.exp(x), axis=0, keepdims=True)
 
             def softmaxaproxdif(output):
                 return output * (1 - output)
