@@ -26,7 +26,7 @@ class Draw:
         self.root = tk.Tk()
         self.root.title("Paint")
 
-        self.canvas = tk.Canvas(self.root, width=28, height=28, bg="black")
+        self.canvas = tk.Canvas(self.root, width=300, height=300, bg="black")
         self.canvas.pack()
 
         self.dessine = False
@@ -35,7 +35,7 @@ class Draw:
 
         self.butons = []
 
-        self.pixels = None
+        self.image = None
 
         self.creerboutons()
 
@@ -76,10 +76,8 @@ class Draw:
         x1 = x + self.canvas.winfo_width()
         y1 = y + self.canvas.winfo_height()
 
-        image = ImageGrab.grab((x, y, x1, y1))
-        image.resize((28, 28))
-
-        self.pixels = image.getdata()
+        self.image = ImageGrab.grab((x, y, x1, y1))
+        # self.image.resize((28, 28))
 
         self.root.destroy()
 
@@ -381,13 +379,14 @@ class NN:
     def TryToDraw(self):
         cnv = Draw()
 
-        pixi = cnv.pixels
+        im = cnv.image
 
-        px = np.array(pixi)
+        im.show()
+
+        px = np.array(im.getdata())
 
         print(px.shape)
         print(px)
-
 
         # self.prediction(px)
 
