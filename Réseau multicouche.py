@@ -8,11 +8,82 @@ from PIL import Image
 
 from tabulate import tabulate
 
+from PIL import ImageGrab
+
+import tkinter as tk
+
+
+np.seterr(all='raise')
+
+
+
 # Plus tard:
 #Adam pour learning rate adaptatif
 
 
-np.seterr(all='raise')
+class Draw:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Paint")
+
+        self.canvas = tk.Canvas(self.root, width=28, height=28, bg="black")
+        self.canvas.pack()
+
+        self.dessine = False
+
+        self.posx, self.posy = None,None
+
+        self.butons = []
+
+        self.pixels = None
+
+        self.creerboutons()
+
+        self.root.mainloop()
+
+    def creerboutons(self):
+        imprimer = tk.Button(self.root, text="Print", command=self.imprime)
+        imprimer.pack(side=tk.LEFT)
+
+        fermer = tk.Button(self.root, text="Fermer", command=self.root.destroy)
+        fermer.pack(side=tk.LEFT)
+
+        self.butons.append(imprimer)
+        self.butons.append(fermer)
+
+
+        self.canvas.bind("<Button-1>", self.commence)
+        self.canvas.bind("<ButtonRelease-1>", self.arret)
+        self.canvas.bind("<B1-Motion>", self.draw)
+
+    def commence(self, event):
+        self.dessine = True
+        self.posx, self.posy = event.x, event.y
+
+    def arret(self, event):
+        self.dessine = False
+
+    def draw(self, event):
+        if self.dessine:
+            x, y = event.x, event.y
+            self.canvas.create_line((self.posx, self.posy, x, y), fill="white", width=1)
+            self.posx, self.posy = x, y
+
+    def imprime(self):
+        self.canvas.update()
+        x = self.root.winfo_rootx() + self.canvas.winfo_x()
+        y = self.root.winfo_rooty() + self.canvas.winfo_y()
+        x1 = x + self.canvas.winfo_width()
+        y1 = y + self.canvas.winfo_height()
+
+        image = ImageGrab.grab((x, y, x1, y1))
+        image.resize((28, 28))
+
+        self.pixels = image.getdata()
+
+        self.root.destroy()
+
+
 
 def takeinputs():
 
@@ -307,22 +378,30 @@ class NN:
         print(decision)
         return
 
+    def TryToDraw(self):
+        cnv = Draw()
+
+        pixi = cnv.pixels
+
+        px = np.array(pixi)
+
+        print(px.shape)
+        print(px)
+
+
+        # self.prediction(px)
+
+
+
+
+
 val, pix, qcmval, qcmpix = takeinputs()
 
 lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10, batch=1)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
 
-g.train()
+# g.train()
 
-# plt.plot([i for i in range(len(a))], a, marker='o', linestyle='-', color='b', label="Loss function")
-# plt.show()
+g.TryToDraw()
 
-# print(g.tauxerreur())
-
-im = Image.open("tres (1).png", "r")
-px = np.absolute(np.array(im.getdata()).reshape(-1,1) - 255)
-
-
-# g.printbasesimple(px)
-g.prediction(px)
