@@ -90,7 +90,7 @@ class Draw:
         if self.dessine:
             x, y = event.x, event.y
 
-            self.canvas.create_line((self.posx, self.posy, x, y), fill="white", width=1)
+            self.canvas.create_line((self.posx, self.posy, x, y), fill="white", width=10)
 
             self.drawing.line([self.posx, self.posy, x, y], fill=0, width=8)
 
@@ -356,7 +356,7 @@ class NN:
     def vecteurbatch(self, val):
         return np.eye(10)[val].T
 
-    def tauxerreur(self): #go in all the test and see accuracy
+    def tauxlent(self): #go in all the test and see accuracy
         nbbien = 0
         for image in range(self.qcmpix.shape[1]):
             forw = self.forwardprop(self.qcmpix[:, image].reshape(-1,1))
@@ -399,8 +399,9 @@ class NN:
 
         px = cnv.pixels
 
-        self.prediction(px)
+        # self.printbasesimple(px)
 
+        self.prediction(px)
 
 val, pix, qcmval, qcmpix = takeinputs()
 
