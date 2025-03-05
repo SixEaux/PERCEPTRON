@@ -4,6 +4,8 @@ import pickle
 from matplotlib import pyplot as plt
 from scipy.special import expit
 
+from PIL import Image
+
 from tabulate import tabulate
 
 # Plus tard:
@@ -34,7 +36,7 @@ def takeinputs():
     return valmelange, pixmelange, qcmval, qcmpix
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1):
+    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
         self.lenbatch = batch
@@ -55,10 +57,20 @@ class NN:
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
 
+        self.aprentissagedynamique = apprentissagedynamique
+
 
 
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
+
+    def printcouleur(self, base, titre):
+        df2 = base.reshape((28,28))
+        plt.imshow(df2, cmap='Greys', interpolation='nearest')
+        plt.colorbar(label='Value')
+        plt.title(titre)
+        plt.show()
+
 
     def processdata(self, pix, qcm): #mettre les donnees sous la bonne forme
         if qcm:
@@ -260,7 +272,7 @@ class NN:
             self.trainsimple()
 
     def choix(self, y):
-        return np.argmax(y,axis=0, keepdims=True)
+        return np.argmax(y,axis=0) #, keepdims=True
 
     def vecteur(self, val):
         return np.eye(10)[[val]].T
@@ -277,23 +289,40 @@ class NN:
 
             if observed == self.qcmval[image]:
                 nbbien += 1
+            else:
+                if self.aprentissagedynamique:
+
+                    dw, db, _ = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], 1)
+
+
+                    self.actualiseweights(dw, db, 1)
+
 
         return nbbien*100 / self.qcmpix.shape[1]
 
     def prediction(self, image):
+        self.printcouleur(image, "")
         forw = self.forwardprop(image)
         decision = self.choix(forw[0])
-        return decision
+        print(decision)
+        return
 
 val, pix, qcmval, qcmpix = takeinputs()
 
 lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=3, batch=1)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10, batch=1)
 
 g.train()
 
 # plt.plot([i for i in range(len(a))], a, marker='o', linestyle='-', color='b', label="Loss function")
 # plt.show()
 
-print(g.tauxerreur())
+# print(g.tauxerreur())
+
+im = Image.open("tres (1).png", "r")
+px = np.absolute(np.array(im.getdata()).reshape(-1,1) - 255)
+
+
+# g.printbasesimple(px)
+g.prediction(px)
