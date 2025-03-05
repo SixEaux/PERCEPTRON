@@ -376,6 +376,17 @@ class NN:
 
         return nbbien*100 / self.qcmpix.shape[1]
 
+    def tauxrapide(self):
+        forw = self.forwardprop(self.qcmpix.reshape(784,-1))
+
+        observed = self.choix(forw[0])
+
+        difference = observed - self.qcmval
+
+        nbbien = np.count_nonzero(difference==0)
+
+        return nbbien*100 / self.qcmpix.shape[1]
+
     def prediction(self, image):
         self.printcouleur(image, "")
         forw = self.forwardprop(image)
@@ -399,5 +410,7 @@ g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
 
 g.train()
 
-g.TryToDraw()
+print(g.tauxrapide())
+
+# g.TryToDraw()
 
