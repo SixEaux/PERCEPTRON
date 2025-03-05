@@ -226,16 +226,16 @@ class NN:
 
             def softmaxdif(output):
                 n = output.shape[0]
-                jacobian = np.zeros((n, n))
+                jacob = np.zeros((n, n))
 
                 for i in range(n):
                     for j in range(n):
                         if i == j:
-                            jacobian[i, j] = output[i] * (1 - output[i])
+                            jacob[i, j] = output[i] * (1 - output[i])
                         else:
-                            jacobian[i, j] = -output[i] * output[j]
+                            jacob[i, j] = -output[i] * output[j]
 
-                return jacobian
+                return jacob
 
             return [softmax, softmaxdif]
 
