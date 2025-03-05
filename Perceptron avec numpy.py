@@ -4,19 +4,19 @@ import random
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 
-with open('valeursentraine', 'rb') as f:
+with open('Datas/valeursentraine', 'rb') as f:
     valeurs = np.array(pickle.load(f))
     vali = np.array(valeurs[:10000])
 
-with open('pixelsentraine', 'rb') as f:
+with open('Datas/pixelsentraine', 'rb') as f:
     pixels = np.array(pickle.load(f))
     pixi = np.array(pixels[:10000])
 
-with open('testval', 'rb') as f:
+with open('Datas/testval', 'rb') as f:
     qcmval = np.array(pickle.load(f))
     petitqcmval = np.array(qcmval[0:5000])
 
-with open('testpix', 'rb') as f:
+with open('Datas/testpix', 'rb') as f:
     qcmpix = np.array(pickle.load(f))
     petitqcmpix = np.array(qcmpix[0:5000])
 

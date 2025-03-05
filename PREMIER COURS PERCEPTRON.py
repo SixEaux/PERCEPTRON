@@ -4,18 +4,18 @@ import random
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 
-with open('valeursentraine', 'rb') as f:
+with open('Datas/valeursentraine', 'rb') as f:
     valeurs = pickle.load(f)
     vali = valeurs[:10]
 
-with open('pixelsentraine', 'rb') as f:
+with open('Datas/pixelsentraine', 'rb') as f:
     pixels = pickle.load(f)
     pixi = pixels[:10]
 
-with open('testval', 'rb') as f:
+with open('Datas/testval', 'rb') as f:
     qcmval = pickle.load(f)
 
-with open('testpix', 'rb') as f:
+with open('Datas/testpix', 'rb') as f:
     qcmpix = pickle.load(f)
 
 class ImageReader:
