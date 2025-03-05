@@ -4,11 +4,9 @@ import pickle
 from matplotlib import pyplot as plt
 from scipy.special import expit
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageOps
 
 from tabulate import tabulate
-
-from PIL import ImageGrab
 
 import tkinter as tk
 
@@ -21,12 +19,34 @@ np.seterr(all='raise')
 #Adam pour learning rate adaptatif
 
 
+def takeinputs():
+
+    with open('valeursentraine', 'rb') as f:
+        valeurs = np.array(pickle.load(f))
+
+    with open('pixelsentraine', 'rb') as f:
+        pixels = np.array(pickle.load(f)).T
+
+    with open('testval', 'rb') as f:
+        qcmval = pickle.load(f)
+
+    with open('testpix', 'rb') as f:
+        qcmpix = np.array(pickle.load(f)).T
+
+    perm = np.random.permutation(pixels.shape[1])
+
+    pixmelange = pixels[:, perm]
+    valmelange = valeurs[perm]
+
+    return valmelange, pixmelange, qcmval, qcmpix
+
+
 class Draw:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Paint")
 
-        self.canvas = tk.Canvas(self.root, width=300, height=300, bg="black")
+        self.canvas = tk.Canvas(self.root, width=280, height=280, bg="black")
         self.canvas.pack()
 
         self.dessine = False
@@ -35,7 +55,10 @@ class Draw:
 
         self.butons = []
 
-        self.image = None
+        self.image = Image.new("L", (280, 280), 255)
+        self.drawing = ImageDraw.Draw(self.image)
+
+        self.pixels = None
 
         self.creerboutons()
 
@@ -66,43 +89,27 @@ class Draw:
     def draw(self, event):
         if self.dessine:
             x, y = event.x, event.y
+
             self.canvas.create_line((self.posx, self.posy, x, y), fill="white", width=1)
+
+            self.drawing.line([self.posx, self.posy, x, y], fill=0, width=8)
+
             self.posx, self.posy = x, y
 
-    def imprime(self):
-        self.canvas.update()
-        x = self.root.winfo_rootx() + self.canvas.winfo_x()
-        y = self.root.winfo_rooty() + self.canvas.winfo_y()
-        x1 = x + self.canvas.winfo_width()
-        y1 = y + self.canvas.winfo_height()
 
-        self.image = ImageGrab.grab((x, y, x1, y1))
-        # self.image.resize((28, 28))
+
+    def imprime(self):
+        im = self.image.resize((28, 28), Image.Resampling.LANCZOS)
+
+        im = ImageOps.invert(im)
+
+        # im.show()
+
+        self.pixels = np.array(im.getdata()).reshape(-1,1)
+
 
         self.root.destroy()
 
-
-
-def takeinputs():
-
-    with open('valeursentraine', 'rb') as f:
-        valeurs = np.array(pickle.load(f))
-
-    with open('pixelsentraine', 'rb') as f:
-        pixels = np.array(pickle.load(f)).T
-
-    with open('testval', 'rb') as f:
-        qcmval = pickle.load(f)
-
-    with open('testpix', 'rb') as f:
-        qcmpix = np.array(pickle.load(f)).T
-
-    perm = np.random.permutation(pixels.shape[1])
-
-    pixmelange = pixels[:, perm]
-    valmelange = valeurs[perm]
-
-    return valmelange, pixmelange, qcmval, qcmpix
 
 class NN:
     def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False):
@@ -373,25 +380,15 @@ class NN:
         self.printcouleur(image, "")
         forw = self.forwardprop(image)
         decision = self.choix(forw[0])
-        print(decision)
+        print(f"Je crois bien que cela est un {decision}")
         return
 
     def TryToDraw(self):
         cnv = Draw()
 
-        im = cnv.image
+        px = cnv.pixels
 
-        im.show()
-
-        px = np.array(im.getdata())
-
-        print(px.shape)
-        print(px)
-
-        # self.prediction(px)
-
-
-
+        self.prediction(px)
 
 
 val, pix, qcmval, qcmpix = takeinputs()
@@ -400,7 +397,7 @@ lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
 g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
 
-# g.train()
+g.train()
 
 g.TryToDraw()
 
