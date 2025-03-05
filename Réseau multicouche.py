@@ -112,7 +112,7 @@ class Draw:
 
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False):
+    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
         self.lenbatch = batch
@@ -134,6 +134,7 @@ class NN:
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
 
         self.aprentissagedynamique = apprentissagedynamique
+        self.graph = graph
 
 
 
@@ -312,21 +313,26 @@ class NN:
         return
 
     def trainsimple(self):
-        # Ctot = []
+        C = []
         for _ in range(self.iter):
             for p in range(self.pix.shape[1]):
                 forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
 
                 dw, db, loss = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
-                # Ctot.append(loss)
-
                 self.actualiseweights(dw, db, 1)
+            C.append(loss)
 
-        return #Ctot
+        if self.graph:
+            plt.plot([i for i in range(self.iter)], C)
+            plt.xlabel('Iteration')
+            plt.ylabel('Loss')
+            plt.title('Fonction de Cout')
+            plt.show()
+
+        return
 
     def trainbatch(self):
-        # Ctot = []
         for _ in range(self.iter):
             nbbatch = self.pix.shape[1] // self.lenbatch
             for bat in range(nbbatch):
@@ -336,10 +342,8 @@ class NN:
 
                 dw, db, loss = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
 
-                # Ctot.append(loss)
-
                 self.actualiseweights(dw, db, self.lenbatch)
-        return #Ctot
+        return
 
     def train(self):
         if self.lenbatch > 1:
@@ -372,7 +376,6 @@ class NN:
 
 
                     self.actualiseweights(dw, db, 1)
-
 
         return nbbien*100 / self.qcmpix.shape[1]
 
@@ -407,7 +410,7 @@ val, pix, qcmval, qcmpix = takeinputs()
 
 lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=10)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10, batch=1, graph=True)
 
 g.train()
 
