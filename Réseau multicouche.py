@@ -315,13 +315,17 @@ class NN:
     def trainsimple(self):
         C = []
         for _ in range(self.iter):
+            L = []
             for p in range(self.pix.shape[1]):
                 forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
 
                 dw, db, loss = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
                 self.actualiseweights(dw, db, 1)
-            C.append(loss)
+
+                L.append(loss)
+
+            C.append(np.average(L))
 
         if self.graph:
             plt.plot([i for i in range(self.iter)], C)
@@ -406,15 +410,30 @@ class NN:
 
         self.prediction(px)
 
+    def graphisme(self):
+        fct = []
+        for _ in range(self.iter):
+            self.trainsimple()
+            a = self.tauxlent()
+            fct.append(a)
+        plt.plot([i for i in range(len(fct))], fct)
+        plt.xlabel('Iteration')
+        plt.ylabel('Taux erreur')
+        plt.title('Fonction de Erreur')
+        plt.show()
+
+
 val, pix, qcmval, qcmpix = takeinputs()
 
 lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10, batch=1, graph=True)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10, batch=1, graph=True, coefcv=0.01)
 
-g.train()
+g.graphisme()
 
-print(g.tauxrapide())
+# g.train()
+
+# print(g.tauxrapide())
 
 # g.TryToDraw()
 
