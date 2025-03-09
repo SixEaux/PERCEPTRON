@@ -112,7 +112,7 @@ class Draw:
 
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False):
+    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, convlay, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
         self.lenbatch = batch
@@ -127,7 +127,7 @@ class NN:
         self.qcmpix = self.processdata(qcmpix, qcm=True)
         self.qcmval = qcmval
 
-        self.parameters = self.params(infolay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
+        self.parameters, self.convlay = self.params(infolay, convlay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
         self.dimweights = [(infolay[l][0], infolay[l-1][0]) for l in range(1, len(infolay))]
 
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
@@ -158,7 +158,7 @@ class NN:
 
         return datamod
 
-    def params(self, lst): #lst liste avec un tuple avec (nbneurons, fctactivation)
+    def params(self, lst, conv): #lst liste avec un tuple avec (nbneurons, fctactivation)
         param = {}
 
         for l in range(1, len(lst)):
@@ -167,6 +167,10 @@ class NN:
             param["b" + str(l-1)] = np.random.rand(lst[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
             param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
+
+        for c in range(1, len(conv)):
+            if
+
         return param
 
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
@@ -423,11 +427,15 @@ class NN:
         plt.show()
 
 
+
+
 val, pix, qcmval, qcmpix = takeinputs()
 
-lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
+convlay = [(784, "input")]
+lay = [(convlay[-1][0],"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10, batch=1, graph=True, coefcv=0.01)
+
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, convlay, iterations=10, batch=1, graph=True, coefcv=0.01)
 
 g.graphisme()
 
