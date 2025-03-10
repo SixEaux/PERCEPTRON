@@ -112,7 +112,8 @@ class Draw:
 
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, convlay, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False):
+    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, convlay, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False,
+                 kernel=2, padding=1, stride=1):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
         self.lenbatch = batch
@@ -124,10 +125,12 @@ class NN:
         self.pix = self.processdata(pix, qcm=False) #pix de train
         self.vales = vales #val de train
 
+        # BASE DE DONNÉES POUR LES TESTS
         self.qcmpix = self.processdata(qcmpix, qcm=True)
         self.qcmval = qcmval
 
-        self.parameters, self.convlay = self.params(infolay, convlay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
+
+        self.parameters = self.params(infolay, convlay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
         self.dimweights = [(infolay[l][0], infolay[l-1][0]) for l in range(1, len(infolay))]
 
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
@@ -135,6 +138,9 @@ class NN:
 
         self.aprentissagedynamique = apprentissagedynamique
         self.graph = graph
+
+        # POUR CNN
+        self.cnn = (kernel, padding, stride)
 
 
 
@@ -167,9 +173,6 @@ class NN:
             param["b" + str(l-1)] = np.random.rand(lst[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
             param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
-
-        for c in range(1, len(conv)):
-            if
 
         return param
 
@@ -426,14 +429,17 @@ class NN:
         plt.title('Fonction de Erreur')
         plt.show()
 
+    def convolution(self): #faire tout le proces de convolution
+        pass
 
+    def convbackprop(self): #recoit la differentielle d'avant et change les matrices de convolution
+        pass
 
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-convlay = [(784, "input")]
+convlay = [(784, "input"), ("filter"), ("maxpooling"), ("flattening")]
 lay = [(convlay[-1][0],"input"), (64,"sigmoid"), (10, "softmax")]
-
 
 g = NN(pix, val, lay, "CEL", qcmpix, qcmval, convlay, iterations=10, batch=1, graph=True, coefcv=0.01)
 
