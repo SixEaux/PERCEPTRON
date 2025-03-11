@@ -40,7 +40,6 @@ def takeinputs():
 
     return valmelange, pixmelange, qcmval, qcmpix
 
-
 class Draw:
     def __init__(self):
         self.root = tk.Tk()
@@ -110,9 +109,8 @@ class Draw:
 
         self.root.destroy()
 
-
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, convlay, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False,
+    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, convlay, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False, color=False,
                  kernel=2, padding=1, stride=1):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
@@ -122,11 +120,11 @@ class NN:
         self.cvcoef = coefcv
 
         # INPUTS POUR ENTRAINEMENT
-        self.pix = self.processdata(pix, qcm=False) #pix de train
+        self.pix = self.processdata(pix, color, qcm=False) #pix de train
         self.vales = vales #val de train
 
         # BASE DE DONNÉES POUR LES TESTS
-        self.qcmpix = self.processdata(qcmpix, qcm=True)
+        self.qcmpix = self.processdata(qcmpix, color, qcm=True)
         self.qcmval = qcmval
 
 
@@ -143,7 +141,6 @@ class NN:
         self.cnn = (kernel, padding, stride)
 
 
-
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
 
@@ -154,13 +151,17 @@ class NN:
         plt.title(titre)
         plt.show()
 
+    def converttogreyscale(self,rgbimage):
+        return np.dot(rgbimage,[0.299, 0.587, 0.114])
 
-    def processdata(self, pix, qcm): #mettre les donnees sous la bonne forme
+    def processdata(self, pix, color, qcm): #mettre les donnees sous la bonne forme
+        if color:
+            pix = self.converttogreyscale(pix)
+
         if qcm:
             datamod = pix
         else:
             datamod = pix/255
-            # datamod = dat[:, np.random.permutation(dat.shape[1])]
 
         return datamod
 
@@ -429,7 +430,16 @@ class NN:
         plt.title('Fonction de Erreur')
         plt.show()
 
+    def multetsom(self, image, kernel):
+        return np.dot(image, kernel).sum()
+
     def convolution(self): #faire tout le proces de convolution
+        pass
+
+    def maxpooling(self):
+        pass
+
+    def flatening(self):
         pass
 
     def convbackprop(self): #recoit la differentielle d'avant et change les matrices de convolution
@@ -439,15 +449,7 @@ class NN:
 val, pix, qcmval, qcmpix = takeinputs()
 
 convlay = ["filter", "maxpooling", "flattening"]
-lay = [(convlay[-1][0],"input"), (64,"sigmoid"), (10, "softmax")]
+
+lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
 g = NN(pix, val, lay, "CEL", qcmpix, qcmval, convlay, iterations=10, batch=1, graph=True, coefcv=0.01)
-
-g.graphisme()
-
-# g.train()
-
-# print(g.tauxrapide())
-
-# g.TryToDraw()
-
