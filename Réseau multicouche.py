@@ -26,19 +26,21 @@ def takeinputs():
 
     with open('Datas/pixelsentraine', 'rb') as f:
         pixels = np.array(pickle.load(f)).T
+        pixelsconv = [np.array(a).reshape((28,28)) for a in pickle.load(f)]
 
     with open('Datas/testval', 'rb') as f:
         qcmval = pickle.load(f)
 
     with open('Datas/testpix', 'rb') as f:
         qcmpix = np.array(pickle.load(f)).T
+        qcmpixconv = [np.array(a).reshape((28,28)) for a in pickle.load(f)]
 
     perm = np.random.permutation(pixels.shape[1])
 
     pixmelange = pixels[:, perm]
     valmelange = valeurs[perm]
 
-    return valmelange, pixmelange, qcmval, qcmpix
+    return valmelange, pixmelange, qcmval, qcmpix, pixelsconv, qcmpixconv
 
 class Draw:
     def __init__(self):
@@ -110,8 +112,8 @@ class Draw:
         self.root.destroy()
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, convlay, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False, color=False,
-                 kernel=2, padding=1, stride=1):
+    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False, color=False,
+                 kernel=2, padding=1, stride=1, convlay=0):
         self.iter = iterations  # nombre iteration entrainement
         self.nblay = len(infolay)-1 # nombre de layers
         self.lenbatch = batch
@@ -120,13 +122,12 @@ class NN:
         self.cvcoef = coefcv
 
         # INPUTS POUR ENTRAINEMENT
-        self.pix = self.processdata(pix, color, qcm=False) #pix de train
+        self.pix = self.processdata(pix, color, False, convlay>0) #pix de train
         self.vales = vales #val de train
 
         # BASE DE DONNÉES POUR LES TESTS
-        self.qcmpix = self.processdata(qcmpix, color, qcm=True)
+        self.qcmpix = self.processdata(qcmpix, color, True, convlay>0)
         self.qcmval = qcmval
-
 
         self.parameters = self.params(infolay, convlay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
         self.dimweights = [(infolay[l][0], infolay[l-1][0]) for l in range(1, len(infolay))]
@@ -138,7 +139,9 @@ class NN:
         self.graph = graph
 
         # POUR CNN
-        self.cnn = (kernel, padding, stride)
+        self.kernel = kernel
+        self.padding = padding
+        self.stride = stride
 
 
     def printbasesimple(self, base):
@@ -154,18 +157,22 @@ class NN:
     def converttogreyscale(self,rgbimage):
         return np.dot(rgbimage,[0.299, 0.587, 0.114])
 
-    def processdata(self, pix, color, qcm): #mettre les donnees sous la bonne forme
-        if color:
-            pix = self.converttogreyscale(pix)
+    def processdata(self, pix, color, qcm, conv): #mettre les donnees sous la bonne forme
+        if not conv:
+            if color:
+                pix = self.converttogreyscale(pix)
 
-        if qcm:
-            datamod = pix
+            if qcm:
+                datamod = pix
+            else:
+                datamod = pix/255
+
         else:
-            datamod = pix/255
+            datamod = [self.converttogreyscale(a)/255 for a in pix]
 
         return datamod
 
-    def params(self, lst, conv): #lst liste avec un tuple avec (nbneurons, fctactivation)
+    def params(self, lst, convlay): #lst liste avec un tuple avec (nbneurons, fctactivation)
         param = {}
 
         for l in range(1, len(lst)):
@@ -174,6 +181,9 @@ class NN:
             param["b" + str(l-1)] = np.random.rand(lst[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
             param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
+
+        for c in range(convlay):
+            param["cl" + str(c-1)] = np.random.uniform(-1,1,size=(self.kernel,self.kernel))
 
         return param
 
@@ -433,7 +443,7 @@ class NN:
     def multetsom(self, image, kernel):
         return np.dot(image, kernel).sum()
 
-    def convolution(self): #faire tout le proces de convolution
+    def convolution(self): #faire convolution
         pass
 
     def maxpooling(self):
@@ -446,10 +456,8 @@ class NN:
         pass
 
 
-val, pix, qcmval, qcmpix = takeinputs()
-
-convlay = ["filter", "maxpooling", "flattening"]
+val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
 lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, convlay, iterations=10, batch=1, graph=True, coefcv=0.01)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10, batch=1, graph=True, coefcv=0.1)
