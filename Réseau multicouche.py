@@ -99,7 +99,7 @@ class Draw:
 
 
     def imprime(self):
-        im = self.image.resize((28, 28), Image.Resampling.LANCZOS)
+        im = self.image.resize((28, 28), Image.Resampling.LANCZOS) #.convert("L")
 
         im = ImageOps.invert(im)
 
@@ -438,7 +438,7 @@ class NN:
 
 val, pix, qcmval, qcmpix = takeinputs()
 
-convlay = [(784, "input"), ("filter"), ("maxpooling"), ("flattening")]
+convlay = ["filter", "maxpooling", "flattening"]
 lay = [(convlay[-1][0],"input"), (64,"sigmoid"), (10, "softmax")]
 
 g = NN(pix, val, lay, "CEL", qcmpix, qcmval, convlay, iterations=10, batch=1, graph=True, coefcv=0.01)
