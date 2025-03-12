@@ -3,6 +3,7 @@ import pickle
 
 from matplotlib import pyplot as plt
 from scipy.special import expit
+from scipy.ndimage import convolve
 
 from PIL import Image, ImageDraw, ImageOps
 
@@ -142,6 +143,7 @@ class NN:
         self.kernel = kernel
         self.padding = padding
         self.stride = stride
+        self.convlay = convlay
 
 
     def printbasesimple(self, base):
@@ -269,14 +271,39 @@ class NN:
         else:
             raise "You forgot to specify the activation function"
 
+    def convolution(self, kernel, image): #faire convolution
+        return convolve(image, kernel, mode="constant", cval=0)
+
+    def maxpooling(self, image):
+        return np.max(image)
+
+    def flatening(self, image):
+        return np.flatnonzero(image)
+
+    def convbackprop(self): #recoit la differentielle d'avant et change les matrices de convolution
+        pass
+
+
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
         activations = [input] #garder pour la backprop les variables
         zs = []
+
+        fctconv = self.getfct("leakyrelu")[0]
+
+        for c in range(self.convlay):
+            kernel = self.parameters["cl" + str(c)]
+            conv = self.convolution(kernel, outlast)
+            maxpool = self.maxpooling(conv)
+            flat = self.flatening(maxpool)
+
+            outlast = fctconv(flat)
+
         for l in range(0, self.nblay):
             w = self.parameters["w" + str(l)]
             b = self.parameters["b" + str(l)]
             z = np.dot(w, outlast) + b
+
             if np.isinf(z).any():
                 print("inf", np.isinf(z))
                 print("________________________________________________________________")
@@ -291,6 +318,7 @@ class NN:
                 print("z", z)
                 print("________________________________________________________________")
                 raise Exception("something went wrong")
+
             a = self.parameters["fct" + str(l)](z)
 
             zs.append(z)
@@ -439,21 +467,6 @@ class NN:
         plt.ylabel('Taux erreur')
         plt.title('Fonction de Erreur')
         plt.show()
-
-    def multetsom(self, image, kernel):
-        return np.dot(image, kernel).sum()
-
-    def convolution(self): #faire convolution
-        pass
-
-    def maxpooling(self):
-        pass
-
-    def flatening(self):
-        pass
-
-    def convbackprop(self): #recoit la differentielle d'avant et change les matrices de convolution
-        pass
 
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
