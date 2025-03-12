@@ -2,8 +2,10 @@ import numpy as np
 import pickle
 
 from matplotlib import pyplot as plt
+from scipy.signal import convolve2d
 from scipy.special import expit
 from scipy.ndimage import convolve
+from skimage.measure import block_reduce
 
 from PIL import Image, ImageDraw, ImageOps
 
@@ -271,14 +273,21 @@ class NN:
         else:
             raise "You forgot to specify the activation function"
 
-    def convolution(self, kernel, image): #faire convolution
-        return convolve(image, kernel, mode="constant", cval=0)
+    def convolution2d(self, kernel, image):
+        kernel = np.flip(kernel,)
 
-    def maxpooling(self, image):
-        return np.max(image)
 
-    def flatening(self, image):
-        return np.flatnonzero(image)
+    def convolutionrapide(self, kernel, image): #faire convolution #ou convolve(kernel,image)
+        output = np.zeros_like(image)
+        for ch in range(image.shape[2]):
+            output[:,:,ch] = convolve2d(input[:,:,ch], kernel, mode='same', boundary='fill', fillvalue=0)
+        return output
+
+    def maxpoolingrapide(self, image):
+        return block_reduce(image, (2,2), np.max)
+
+    def flateningrapide(self, image):
+        return image.reshape((-1,1))
 
     def convbackprop(self): #recoit la differentielle d'avant et change les matrices de convolution
         pass
@@ -303,21 +312,6 @@ class NN:
             w = self.parameters["w" + str(l)]
             b = self.parameters["b" + str(l)]
             z = np.dot(w, outlast) + b
-
-            if np.isinf(z).any():
-                print("inf", np.isinf(z))
-                print("________________________________________________________________")
-                print("w", w)
-                print("________________________________________________________________")
-                print("out", outlast)
-                print("________________________________________________________________")
-                print("profuit", np.dot(w, outlast))
-                print("_______________________________________________________________")
-                print("b", b)
-                print("________________________________________________________________")
-                print("z", z)
-                print("________________________________________________________________")
-                raise Exception("something went wrong")
 
             a = self.parameters["fct" + str(l)](z)
 
