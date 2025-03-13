@@ -28,15 +28,17 @@ def takeinputs():
         valeurs = np.array(pickle.load(f))
 
     with open('Datas/pixelsentraine', 'rb') as f:
-        pixels = np.array(pickle.load(f)).T
-        pixelsconv = [np.array(a).reshape((28,28)) for a in pickle.load(f)]
+        p = pickle.load(f)
+        pixels = np.array(p).T
+        pixelsconv = [np.array(a).reshape((28,28)) for a in p]
 
     with open('Datas/testval', 'rb') as f:
         qcmval = pickle.load(f)
 
     with open('Datas/testpix', 'rb') as f:
-        qcmpix = np.array(pickle.load(f)).T
-        qcmpixconv = [np.array(a).reshape((28,28)) for a in pickle.load(f)]
+        qp = pickle.load(f)
+        qcmpix = np.array(qp).T
+        qcmpixconv = [np.array(a).reshape((28,28)) for a in qp]
 
     perm = np.random.permutation(pixels.shape[1])
 
@@ -124,6 +126,12 @@ class NN:
         # INITIALISATION VARIABLES
         self.cvcoef = coefcv
 
+        # POUR CNN
+        self.kernel = kernel
+        self.padding = padding
+        self.stride = stride
+        self.convlay = convlay
+
         # INPUTS POUR ENTRAINEMENT
         self.pix = self.processdata(pix, color, False, convlay>0) #pix de train
         self.vales = vales #val de train
@@ -140,12 +148,6 @@ class NN:
 
         self.aprentissagedynamique = apprentissagedynamique
         self.graph = graph
-
-        # POUR CNN
-        self.kernel = kernel
-        self.padding = padding
-        self.stride = stride
-        self.convlay = convlay
 
 
     def printbasesimple(self, base):
@@ -172,7 +174,7 @@ class NN:
                 datamod = pix/255
 
         else:
-            datamod = [self.converttogreyscale(a)/255 for a in pix]
+            datamod = [a/255 for a in pix]
 
         return datamod
 
@@ -187,7 +189,7 @@ class NN:
             param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
 
         for c in range(convlay):
-            param["cl" + str(c-1)] = np.random.uniform(-1,1,size=(self.kernel,self.kernel))
+            param["cl" + str(c)] = np.random.uniform(-1,1,size=(self.kernel,self.kernel))
 
         return param
 
@@ -273,25 +275,25 @@ class NN:
         else:
             raise "You forgot to specify the activation function"
 
-    def convolution2d(self, kernel, image):
-        kernel = np.flip(kernel,)
-
-
     def convolutionrapide(self, kernel, image): #faire convolution #ou convolve(kernel,image)
+        try:
+            dim2 = image.shape[2]
+        except IndexError:
+            dim2 = 0
+
         output = np.zeros_like(image)
-        for ch in range(image.shape[2]):
+        for ch in range(dim2):
             output[:,:,ch] = convolve2d(input[:,:,ch], kernel, mode='same', boundary='fill', fillvalue=0)
         return output
 
     def maxpoolingrapide(self, image):
-        return block_reduce(image, (2,2), np.max)
+        return block_reduce(image, (self.kernel,self.kernel), np.max)
 
-    def flateningrapide(self, image):
+    def flatening(self, image):
         return image.reshape((-1,1))
 
     def convbackprop(self): #recoit la differentielle d'avant et change les matrices de convolution
         pass
-
 
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
@@ -302,8 +304,8 @@ class NN:
 
         for c in range(self.convlay):
             kernel = self.parameters["cl" + str(c)]
-            conv = self.convolution(kernel, outlast)
-            maxpool = self.maxpooling(conv)
+            conv = self.convolutionrapide(kernel, outlast)
+            maxpool = self.maxpoolingrapide(conv)
             flat = self.flatening(maxpool)
 
             outlast = fctconv(flat)
@@ -465,6 +467,10 @@ class NN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
+lay = [(100,"input"), (64,"sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=10, batch=1, graph=True, coefcv=0.1)
+g = NN(pixelsconv, val, lay, "CEL", qcmpixconv, qcmval, iterations=1, batch=1, graph=False, coefcv=0.1, color=False, kernel=3, padding=1, stride=1, convlay=1)
+
+test = g.forwardprop(g.pix[10])
+
+# print(test[0])
