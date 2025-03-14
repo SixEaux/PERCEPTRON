@@ -16,12 +16,6 @@ import tkinter as tk
 
 np.seterr(all='raise')
 
-
-
-# Plus tard:
-#Adam pour learning rate adaptatif
-
-
 def takeinputs():
 
     with open('Datas/valeursentraine', 'rb') as f:
@@ -131,6 +125,16 @@ class NN:
         self.padding = padding
         self.stride = stride
         self.convlay = convlay
+        self.convdims = []
+
+        d = 784
+        for i in range(self.convlay):
+            dim = (d+2*self.padding-self.kernel)//self.stride + 1
+            self.convdims.append(dim)
+            d = dim
+
+        if self.convlay>0:
+            infolay[0] = (self.convdims[-1], "input")
 
         # INPUTS POUR ENTRAINEMENT
         self.pix = self.processdata(pix, color, False, convlay>0) #pix de train
@@ -145,6 +149,8 @@ class NN:
 
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
+
+        self.fctconv = self.getfct("leakyrelu")
 
         self.aprentissagedynamique = apprentissagedynamique
         self.graph = graph
@@ -181,15 +187,15 @@ class NN:
     def params(self, lst, convlay): #lst liste avec un tuple avec (nbneurons, fctactivation)
         param = {}
 
+        for c in range(convlay):
+            param["cl" + str(c)] = np.random.uniform(-1,1,size=(self.kernel,self.kernel))
+
         for l in range(1, len(lst)):
             param["w" + str(l-1)] = np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(1 / lst[l-1][0])
             # #np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0])) #nbneurons * nbinput
             param["b" + str(l-1)] = np.random.rand(lst[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
             param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
-
-        for c in range(convlay):
-            param["cl" + str(c)] = np.random.uniform(-1,1,size=(self.kernel,self.kernel))
 
         return param
 
@@ -276,6 +282,7 @@ class NN:
             raise "You forgot to specify the activation function"
 
     def convolutionrapide(self, kernel, image): #faire convolution #ou convolve(kernel,image)
+        # return convolve(image, kernel)
         try:
             dim2 = image.shape[2]
         except IndexError:
@@ -292,23 +299,25 @@ class NN:
     def flatening(self, image):
         return image.reshape((-1,1))
 
-    def convbackprop(self): #recoit la differentielle d'avant et change les matrices de convolution
-        pass
-
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
-        activations = [input] #garder pour la backprop les variables
-        zs = []
+        if self.convlay > 0:
+            activationsconv, activations = [input] , []
+        else:
+            activationsconv, activations = [], [input] #garder pour la backprop les variables
 
-        fctconv = self.getfct("leakyrelu")[0]
+        zs = []
+        zconv = []
 
         for c in range(self.convlay):
             kernel = self.parameters["cl" + str(c)]
             conv = self.convolutionrapide(kernel, outlast)
-            maxpool = self.maxpoolingrapide(conv)
-            flat = self.flatening(maxpool)
+            zconv.append(conv)
+            # maxpool = self.maxpoolingrapide(conv)
+            outlast = self.fctconv[0](conv)
+            activationsconv.append(outlast)
 
-            outlast = fctconv(flat)
+        outlast = self.flatening(outlast)
 
         for l in range(0, self.nblay):
             w = self.parameters["w" + str(l)]
@@ -321,13 +330,14 @@ class NN:
             activations.append(a)
             outlast = a
 
-        return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
+        return outlast, zs, activations, activationsconv, zconv #out last c'est la prediction et vieux c'est pour backprop
 
-    def backprop(self, expected, zs, activations, nbinp):
+    def backprop(self, expected, zs, activations, nbinp, activationsconv=None, zconv=None):
         C = self.errorfunc(activations[-1], expected, nbinp)
 
         dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
         db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
+        dc = [np.zeros((self.kernel,self.kernel)) for i in range(self.convlay)]
 
         delta = self.differrorfunc(activations[-1], expected, nbinp)
 
@@ -346,12 +356,28 @@ class NN:
             dw[l] += dwl
             db[l] += dbl
 
-        return dw, db, C
+        delta = delta.reshape(zconv[-1].shape)
 
-    def actualiseweights(self, dw, db, nbinput):
+        for c in range(self.convlay-1, -1, -1):
+            filtre = self.parameters["cl" + str(c)]
+            diff = self.fctconv[1](zconv[c])
+
+            dLdf = self.convolutionrapide(filtre, activationsconv[c])
+
+            delta = self.convolutionrapide(np.flipud(np.fliplr(filtre)), delta) * diff
+
+            dc[c] += dLdf
+
+        return dw, db, C, dc
+
+    def actualiseweights(self, dw, db, nbinput, dc=None):
         for l in range(0,self.nblay):
             self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/nbinput)
             self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/nbinput)
+
+        for c in range(self.convlay):
+            self.parameters["cl" + str(c)] -= self.cvcoef * dc[c] * (1/nbinput)
+
         return
 
     def trainsimple(self):
@@ -361,9 +387,9 @@ class NN:
             for p in range(self.pix.shape[1]):
                 forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
 
-                dw, db, loss = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+                dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1, activationsconv = forw[3], zconv = forw[4])
 
-                self.actualiseweights(dw, db, 1)
+                self.actualiseweights(dw, db, 1, dc)
 
                 L.append(loss)
 
@@ -386,7 +412,7 @@ class NN:
 
                 forw = self.forwardprop(matrice)
 
-                dw, db, loss = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
+                dw, db, loss, dc = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch, forw[3], forw[4])
 
                 self.actualiseweights(dw, db, self.lenbatch)
         return
@@ -418,10 +444,10 @@ class NN:
             else:
                 if self.aprentissagedynamique:
 
-                    dw, db, _ = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], 1)
+                    dw, db, _, dc = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], 1, forw[3], forw[4])
 
 
-                    self.actualiseweights(dw, db, 1)
+                    self.actualiseweights(dw, db, 1, dc)
 
         return nbbien*100 / self.qcmpix.shape[1]
 
@@ -473,4 +499,4 @@ g = NN(pixelsconv, val, lay, "CEL", qcmpixconv, qcmval, iterations=1, batch=1, g
 
 test = g.forwardprop(g.pix[10])
 
-# print(test[0])
+g.backprop(g.vecteur(g.vales[10]), test[1], test[2], 1, test[3], test[4])
