@@ -2,9 +2,9 @@ import numpy as np
 import pickle
 
 from matplotlib import pyplot as plt
-from scipy.signal import convolve2d
 from scipy.special import expit
-from scipy.ndimage import convolve
+
+from scipy.signal import correlate2d
 from skimage.measure import block_reduce
 
 from PIL import Image, ImageDraw, ImageOps
@@ -124,17 +124,14 @@ class NN:
         self.kernel = kernel
         self.padding = padding
         self.stride = stride
-        self.convlay = convlay
+        self.nbconv = convlay
         self.convdims = []
 
-        d = 784
-        for i in range(self.convlay):
+        d = 28
+        for i in range(self.nbconv):
             dim = (d+2*self.padding-self.kernel)//self.stride + 1
             self.convdims.append(dim)
             d = dim
-
-        if self.convlay>0:
-            infolay[0] = (self.convdims[-1], "input")
 
         # INPUTS POUR ENTRAINEMENT
         self.pix = self.processdata(pix, color, False, convlay>0) #pix de train
@@ -150,11 +147,10 @@ class NN:
         self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
         self.differrorfunc = self.geterrorfunc(errorfunc)[1]
 
-        self.fctconv = self.getfct("leakyrelu")
+        self.fctconv = self.getfct("relu")
 
         self.aprentissagedynamique = apprentissagedynamique
         self.graph = graph
-
 
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
@@ -187,12 +183,15 @@ class NN:
     def params(self, lst, convlay): #lst liste avec un tuple avec (nbneurons, fctactivation)
         param = {}
 
+        if self.nbconv>0:
+            lst[0] = (self.convdims[-1]**2, "input")
+
         for c in range(convlay):
             param["cl" + str(c)] = np.random.uniform(-1,1,size=(self.kernel,self.kernel))
 
         for l in range(1, len(lst)):
-            param["w" + str(l-1)] = np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(1 / lst[l-1][0])
-            # #np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0])) #nbneurons * nbinput
+            param["w" + str(l-1)] = np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(1 / lst[l-1][0]) #nbneurons * nbinput
+            # #np.random.uniform(-1, 1, (lst[l][0], lst[l-1][0]))
             param["b" + str(l-1)] = np.random.rand(lst[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(lst[l][1])[0]
             param["diff" + str(l-1)] = self.getfct(lst[l][1])[1]
@@ -281,17 +280,8 @@ class NN:
         else:
             raise "You forgot to specify the activation function"
 
-    def convolutionrapide(self, kernel, image): #faire convolution #ou convolve(kernel,image)
-        # return convolve(image, kernel)
-        try:
-            dim2 = image.shape[2]
-        except IndexError:
-            dim2 = 0
-
-        output = np.zeros_like(image)
-        for ch in range(dim2):
-            output[:,:,ch] = convolve2d(input[:,:,ch], kernel, mode='same', boundary='fill', fillvalue=0)
-        return output
+    def convolutionrapide(self, kernel, image, mode="same"): #faire convolution #ou convolve(kernel,image)
+        return np.array(correlate2d(image, kernel, mode=mode))
 
     def maxpoolingrapide(self, image):
         return block_reduce(image, (self.kernel,self.kernel), np.max)
@@ -301,23 +291,21 @@ class NN:
 
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
-        if self.convlay > 0:
-            activationsconv, activations = [input] , []
-        else:
-            activationsconv, activations = [], [input] #garder pour la backprop les variables
+
+        activations = [input] #garder pour la backprop les variables
 
         zs = []
-        zconv = []
 
-        for c in range(self.convlay):
+        for c in range(self.nbconv):
             kernel = self.parameters["cl" + str(c)]
             conv = self.convolutionrapide(kernel, outlast)
-            zconv.append(conv)
+            zs.append(conv)
             # maxpool = self.maxpoolingrapide(conv)
             outlast = self.fctconv[0](conv)
-            activationsconv.append(outlast)
+            activations.append(outlast)
 
         outlast = self.flatening(outlast)
+        activations[-1] = outlast
 
         for l in range(0, self.nblay):
             w = self.parameters["w" + str(l)]
@@ -330,41 +318,41 @@ class NN:
             activations.append(a)
             outlast = a
 
-        return outlast, zs, activations, activationsconv, zconv #out last c'est la prediction et vieux c'est pour backprop
+        return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
-    def backprop(self, expected, zs, activations, nbinp, activationsconv=None, zconv=None):
+    def backprop(self, expected, zs, activations, nbinp):
         C = self.errorfunc(activations[-1], expected, nbinp)
 
         dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
         db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
-        dc = [np.zeros((self.kernel,self.kernel)) for i in range(self.convlay)]
+        dc = [np.zeros((self.kernel,self.kernel)) for i in range(self.nbconv)]
 
         delta = self.differrorfunc(activations[-1], expected, nbinp)
 
         dw[-1] += np.dot(delta, activations[-2].T)
         db[-1] += np.sum(delta, axis=1, keepdims=True)
 
-        for l in range(self.nblay - 2, -1, -1):
+        for l in range(self.nblay - 2, self.nbconv - 2, -1): #64*10 ya hecho hay que ir directos al 784*64
             w = self.parameters["w" + str(l + 1)]
-            dif = self.parameters["diff" + str(l)](zs[l])
+            dif = self.parameters["diff" + str(l)](zs[l + self.nbconv])
 
-            delta = np.dot(w.T, delta) * dif
+            delta = np.dot(w.T, delta) * dif #probleme avec indices il faut ajuster car on prend la derniere diff
 
-            dwl = np.dot(delta, activations[l].T)
+            dwl = np.dot(delta, activations[l + self.nbconv].T)
             dbl = np.sum(delta, axis=1, keepdims=True)
 
             dw[l] += dwl
             db[l] += dbl
 
-        delta = delta.reshape(zconv[-1].shape)
+        delta = delta.reshape(zs[self.nbconv].shape)
 
-        for c in range(self.convlay-1, -1, -1):
+        for c in range(self.nbconv - 1, 0, -1):
             filtre = self.parameters["cl" + str(c)]
-            diff = self.fctconv[1](zconv[c])
+            diff = self.fctconv[1](zs[c])
 
-            dLdf = self.convolutionrapide(filtre, activationsconv[c])
+            dLdf = self.convolutionrapide(filtre, activations[c])
 
-            delta = self.convolutionrapide(np.flipud(np.fliplr(filtre)), delta) * diff
+            delta = self.convolutionrapide(np.flipud(np.fliplr(filtre)), delta, mode="full") * diff
 
             dc[c] += dLdf
 
@@ -375,7 +363,7 @@ class NN:
             self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/nbinput)
             self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/nbinput)
 
-        for c in range(self.convlay):
+        for c in range(self.nbconv):
             self.parameters["cl" + str(c)] -= self.cvcoef * dc[c] * (1/nbinput)
 
         return
@@ -387,7 +375,7 @@ class NN:
             for p in range(self.pix.shape[1]):
                 forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
 
-                dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1, activationsconv = forw[3], zconv = forw[4])
+                dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
                 self.actualiseweights(dw, db, 1, dc)
 
@@ -401,6 +389,17 @@ class NN:
             plt.ylabel('Loss')
             plt.title('Fonction de Cout')
             plt.show()
+
+        return
+
+    def trainsimpleconv(self):
+        for _ in range(self.iter):
+            for p in range(len(self.pix)):
+                forw = self.forwardprop(self.pix[p])
+
+                dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+
+                self.actualiseweights(dw, db, 1, dc)
 
         return
 
@@ -421,7 +420,10 @@ class NN:
         if self.lenbatch > 1:
             self.trainbatch()
         elif self.lenbatch == 1:
-            self.trainsimple()
+            if self.nbconv > 0:
+                self.trainsimpleconv()
+            else:
+                self.trainsimple()
 
     def choix(self, y):
         return np.argmax(y,axis=0) #, keepdims=True
@@ -462,6 +464,18 @@ class NN:
 
         return nbbien*100 / self.qcmpix.shape[1]
 
+    def tauxconv(self):
+        nbbien = 0
+        for image in range(len(self.qcmpix)):
+            forw = self.forwardprop(self.qcmpix[image])
+
+            observed = self.choix(forw[0])
+
+            if observed == self.qcmval[image]:
+                nbbien += 1
+
+        return nbbien * 100 / len(self.qcmpix)
+
     def prediction(self, image):
         self.printcouleur(image, "")
         forw = self.forwardprop(image)
@@ -493,10 +507,10 @@ class NN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-lay = [(100,"input"), (64,"sigmoid"), (10, "softmax")]
+lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
 
 g = NN(pixelsconv, val, lay, "CEL", qcmpixconv, qcmval, iterations=1, batch=1, graph=False, coefcv=0.1, color=False, kernel=3, padding=1, stride=1, convlay=1)
 
-test = g.forwardprop(g.pix[10])
+g.train()
 
-g.backprop(g.vecteur(g.vales[10]), test[1], test[2], 1, test[3], test[4])
+print(g.tauxconv())
