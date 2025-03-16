@@ -280,7 +280,7 @@ class NN:
         else:
             raise "You forgot to specify the activation function"
 
-    def convolutionrapide(self, kernel, image, mode="same"): #faire convolution #ou convolve(kernel,image)
+    def convolutionrapide(self, image, kernel, mode="same"): #faire convolution #ou convolve(kernel,image)
         return np.array(correlate2d(image, kernel, mode=mode))
 
     def maxpoolingrapide(self, image):
@@ -298,14 +298,15 @@ class NN:
 
         for c in range(self.nbconv):
             kernel = self.parameters["cl" + str(c)]
-            conv = self.convolutionrapide(kernel, outlast)
+            conv = self.convolutionrapide(outlast, kernel)
             zs.append(conv)
             # maxpool = self.maxpoolingrapide(conv)
             outlast = self.fctconv[0](conv)
-            activations.append(outlast)
-
-        outlast = self.flatening(outlast)
-        activations[-1] = outlast
+            if c == self.nbconv - 1:
+                outlast = self.flatening(outlast)
+                activations.append(outlast)
+            else:
+                activations.append(outlast)
 
         for l in range(0, self.nblay):
             w = self.parameters["w" + str(l)]
@@ -344,13 +345,17 @@ class NN:
             dw[l] += dwl
             db[l] += dbl
 
-        delta = delta.reshape(zs[self.nbconv].shape)
+        ultimoweight = self.parameters["w0"]
+        ultimadif = self.fctconv[1](zs[self.nbconv - 1])
+        delta = np.dot(ultimoweight.T, delta).reshape(ultimadif.shape) * ultimadif
 
-        for c in range(self.nbconv - 1, 0, -1):
+        dc[-1] += self.convolutionrapide(activations[self.nbconv-1], delta, mode="valid")
+
+        for c in range(self.nbconv - 2, -1, -1):
             filtre = self.parameters["cl" + str(c)]
             diff = self.fctconv[1](zs[c])
 
-            dLdf = self.convolutionrapide(filtre, activations[c])
+            dLdf = self.convolutionrapide(activations[c], filtre, mode="valid")
 
             delta = self.convolutionrapide(np.flipud(np.fliplr(filtre)), delta, mode="full") * diff
 
