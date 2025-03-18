@@ -1,133 +1,62 @@
+#GENERAL
 import numpy as np
-import pickle
-
-from matplotlib import pyplot as plt
 from scipy.special import expit
+from dataclasses import dataclass
 
+#CONV
 from scipy.signal import correlate2d
 from skimage.measure import block_reduce
 
-from PIL import Image, ImageDraw, ImageOps
-
+#PRINT
 from tabulate import tabulate
+from matplotlib import pyplot as plt
 
-import tkinter as tk
-
+#ORGANIZACION
+from Auxiliares import takeinputs, Draw
 
 np.seterr(all='raise')
 
-def takeinputs():
+@dataclass
+class Parametros:
+    pix : list or np.ndarray
+    vales : np.ndarray
+    qcmpix: list or np.ndarray
+    qcmval: np.ndarray
 
-    with open('Datas/valeursentraine', 'rb') as f:
-        valeurs = np.array(pickle.load(f))
+    infolay: list
 
-    with open('Datas/pixelsentraine', 'rb') as f:
-        p = pickle.load(f)
-        pixels = np.array(p).T
-        pixelsconv = [np.array(a).reshape((28,28)) for a in p]
+    iterations: int = 1
+    coefcv: float = 0.1
+    batch: int = 1
+    errorfunc: str = "CEL"
 
-    with open('Datas/testval', 'rb') as f:
-        qcmval = pickle.load(f)
+    apprentissagedynamique: bool = False
+    graph: bool = False
+    color: bool = False
 
-    with open('Datas/testpix', 'rb') as f:
-        qp = pickle.load(f)
-        qcmpix = np.array(qp).T
-        qcmpixconv = [np.array(a).reshape((28,28)) for a in qp]
+    #CNN
+    kernel: int = 2
+    padding: int = 1
+    stride: int = 1
+    convlay: int = 0
 
-    perm = np.random.permutation(pixels.shape[1])
-
-    pixmelange = pixels[:, perm]
-    valmelange = valeurs[perm]
-
-    pixmelangeconv = list(map(pixelsconv.__getitem__, perm))
-
-    return valmelange, pixmelange, qcmval, qcmpix, pixmelangeconv, qcmpixconv
-
-class Draw:
-    def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("Paint")
-
-        self.canvas = tk.Canvas(self.root, width=280, height=280, bg="black")
-        self.canvas.pack()
-
-        self.dessine = False
-
-        self.posx, self.posy = None,None
-
-        self.butons = []
-
-        self.image = Image.new("L", (280, 280), 255)
-        self.drawing = ImageDraw.Draw(self.image)
-
-        self.pixels = None
-
-        self.creerboutons()
-
-        self.root.mainloop()
-
-    def creerboutons(self):
-        imprimer = tk.Button(self.root, text="Print", command=self.imprime)
-        imprimer.pack(side=tk.LEFT)
-
-        fermer = tk.Button(self.root, text="Fermer", command=self.root.destroy)
-        fermer.pack(side=tk.LEFT)
-
-        self.butons.append(imprimer)
-        self.butons.append(fermer)
-
-
-        self.canvas.bind("<Button-1>", self.commence)
-        self.canvas.bind("<ButtonRelease-1>", self.arret)
-        self.canvas.bind("<B1-Motion>", self.draw)
-
-    def commence(self, event):
-        self.dessine = True
-        self.posx, self.posy = event.x, event.y
-
-    def arret(self, event):
-        self.dessine = False
-
-    def draw(self, event):
-        if self.dessine:
-            x, y = event.x, event.y
-
-            self.canvas.create_line((self.posx, self.posy, x, y), fill="white", width=10)
-
-            self.drawing.line([self.posx, self.posy, x, y], fill=0, width=8)
-
-            self.posx, self.posy = x, y
-
-
-
-    def imprime(self):
-        im = self.image.resize((28, 28), Image.Resampling.LANCZOS) #.convert("L")
-
-        im = ImageOps.invert(im)
-
-        # im.show()
-
-        self.pixels = np.array(im.getdata()).reshape(-1,1)
-
-
-        self.root.destroy()
 
 class NN:
-    def __init__(self, pix, vales, infolay, errorfunc, qcmpix, qcmval, *, coefcv=0.1, iterations=1, batch=1, apprentissagedynamique=False, graph=False, color=False,
-                 kernel=2, padding=1, stride=1, convlay=0):
-        self.iter = iterations  # nombre iteration entrainement
-        self.nblay = len(infolay)-1 # nombre de layers
-        self.lenbatch = batch
+    def __init__(self, par = Parametros):
+        self.iter = par.iterations  # nombre iteration entrainement
+        self.nblay = len(par.infolay)-1 # nombre de layers
+        self.nbconv = par.convlay # numero layers convolution
+        self.lenbatch = par.batch
 
         # INITIALISATION VARIABLES
-        self.cvcoef = coefcv
+        self.cvcoef = par.coefcv #learning rate
 
         # POUR CNN
-        self.kernel = kernel
-        self.padding = padding
-        self.stride = stride
-        self.nbconv = convlay
-        self.convdims = []
+        self.kernel = par.kernel #lado filtro
+        self.padding = par.padding #espacio con bordes
+        self.stride = par.stride #de cuanto se mueve el filtro
+
+        self.convdims = [] #dimensiones salida convolution
 
         d = 28
         for i in range(self.nbconv):
@@ -136,23 +65,22 @@ class NN:
             d = dim
 
         # INPUTS POUR ENTRAINEMENT
-        self.pix = self.processdata(pix, color, False, convlay>0) #pix de train
-        self.vales = vales #val de train
+        self.pix = self.processdata(par.pix, par.color, False, par.convlay>0) #pix de train
+        self.vales = par.vales #val de train
 
         # BASE DE DONNÉES POUR LES TESTS
-        self.qcmpix = self.processdata(qcmpix, color, True, convlay>0)
+        self.qcmpix = self.processdata(par.qcmpix, par.color, True, par.convlay>0)
         self.qcmval = qcmval
 
-        self.parameters = self.params(infolay, convlay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
-        self.dimweights = [(infolay[l][0], infolay[l-1][0]) for l in range(1, len(infolay))]
+        self.parameters = self.params(par.infolay, par.convlay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
+        self.dimweights = [(par.infolay[l][0], par.infolay[l-1][0]) for l in range(1, len(par.infolay))] #dimensiones pesos para backprop
 
-        self.errorfunc = self.geterrorfunc(errorfunc)[0] #choisir la fonction d'erreur
-        self.differrorfunc = self.geterrorfunc(errorfunc)[1]
+        self.errorfunc = self.geterrorfunc(par.errorfunc) #choisir la fonction d'erreur
 
         self.fctconv = self.getfct("relu")
 
-        self.aprentissagedynamique = apprentissagedynamique
-        self.graph = graph
+        self.aprentissagedynamique = par.apprentissagedynamique
+        self.graph = par.graph
 
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
@@ -324,13 +252,13 @@ class NN:
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
     def backprop(self, expected, zs, activations, nbinp):
-        C = self.errorfunc(activations[-1], expected, nbinp)
+        C = self.errorfunc[0](activations[-1], expected, nbinp)
 
         dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
         db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
         dc = [np.zeros((self.kernel,self.kernel)) for i in range(self.nbconv)]
 
-        delta = self.differrorfunc(activations[-1], expected, nbinp)
+        delta = self.errorfunc[1](activations[-1], expected, nbinp)
 
         dw[-1] += np.dot(delta, activations[-2].T)
         db[-1] += np.sum(delta, axis=1, keepdims=True)
@@ -419,7 +347,7 @@ class NN:
 
                 forw = self.forwardprop(matrice)
 
-                dw, db, loss, dc = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch, forw[3], forw[4])
+                dw, db, loss, dc = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
 
                 self.actualiseweights(dw, db, self.lenbatch)
         return
@@ -454,7 +382,7 @@ class NN:
             else:
                 if self.aprentissagedynamique:
 
-                    dw, db, _, dc = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], 1, forw[3], forw[4])
+                    dw, db, _, dc = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], 1)
 
 
                     self.actualiseweights(dw, db, 1, dc)
@@ -513,20 +441,13 @@ class NN:
         plt.show()
 
 
-class Parametros:
-    pix : list or np.ndarray
-    vales : np.ndarray
-    infolay: dict
-    errorfunc: str
-    qcmpix, qcmval, *, coefcv = 0.1, iterations = 1, batch = 1, apprentissagedynamique = False, graph = False, color = False,
-    kernel = 2, padding = 1, stride = 1, convlay = 0
-
-
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
 lay = [(784,"input"), (64, "sigmoid"), (10, "softmax")]
 
-g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=1, graph=False, coefcv=0.1, color=False, kernel=3, padding=1, stride=1, convlay=0)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay)
+
+g = NN(parametros)
 
 g.train()
 
