@@ -39,7 +39,9 @@ def takeinputs():
     pixmelange = pixels[:, perm]
     valmelange = valeurs[perm]
 
-    return valmelange, pixmelange, qcmval, qcmpix, pixelsconv, qcmpixconv
+    pixmelangeconv = list(map(pixelsconv.__getitem__, perm))
+
+    return valmelange, pixmelange, qcmval, qcmpix, pixmelangeconv, qcmpixconv
 
 class Draw:
     def __init__(self):
@@ -333,11 +335,11 @@ class NN:
         dw[-1] += np.dot(delta, activations[-2].T)
         db[-1] += np.sum(delta, axis=1, keepdims=True)
 
-        for l in range(self.nblay - 2, self.nbconv - 2, -1): #64*10 ya hecho hay que ir directos al 784*64
+        for l in range(self.nblay - 2, self.nbconv - 1, -1): #64*10 ya hecho hay que ir directos al 784*64
             w = self.parameters["w" + str(l + 1)]
             dif = self.parameters["diff" + str(l)](zs[l + self.nbconv])
 
-            delta = np.dot(w.T, delta) * dif #probleme avec indices il faut ajuster car on prend la derniere diff
+            delta = np.dot(w.T, delta) * dif
 
             dwl = np.dot(delta, activations[l + self.nbconv].T)
             dbl = np.sum(delta, axis=1, keepdims=True)
@@ -345,21 +347,22 @@ class NN:
             dw[l] += dwl
             db[l] += dbl
 
-        ultimoweight = self.parameters["w0"]
-        ultimadif = self.fctconv[1](zs[self.nbconv - 1])
-        delta = np.dot(ultimoweight.T, delta).reshape(ultimadif.shape) * ultimadif
+        if self.nbconv>0:
+            ultimoweight = self.parameters["w0"]
+            ultimadif = self.fctconv[1](zs[self.nbconv - 1])
+            delta = np.dot(ultimoweight.T, delta).reshape(ultimadif.shape) * ultimadif
 
-        dc[-1] += self.convolutionrapide(activations[self.nbconv-1], delta, mode="valid")
+            dc[-1] += self.convolutionrapide(activations[self.nbconv-1], delta, mode="valid")
 
-        for c in range(self.nbconv - 2, -1, -1):
-            filtre = self.parameters["cl" + str(c)]
-            diff = self.fctconv[1](zs[c])
+            for c in range(self.nbconv - 2, -1, -1):
+                filtre = self.parameters["cl" + str(c)]
+                diff = self.fctconv[1](zs[c])
 
-            dLdf = self.convolutionrapide(activations[c], filtre, mode="valid")
+                delta = self.convolutionrapide(np.flipud(np.fliplr(filtre)), delta, mode="full") * diff
 
-            delta = self.convolutionrapide(np.flipud(np.fliplr(filtre)), delta, mode="full") * diff
+                dLdf = self.convolutionrapide(activations[c], delta, mode="valid")
 
-            dc[c] += dLdf
+                dc[c] += dLdf
 
         return dw, db, C, dc
 
@@ -510,12 +513,21 @@ class NN:
         plt.show()
 
 
+class Parametros:
+    pix : list or np.ndarray
+    vales : np.ndarray
+    infolay: dict
+    errorfunc: str
+    qcmpix, qcmval, *, coefcv = 0.1, iterations = 1, batch = 1, apprentissagedynamique = False, graph = False, color = False,
+    kernel = 2, padding = 1, stride = 1, convlay = 0
+
+
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-lay = [(784,"input"), (64,"sigmoid"), (10, "softmax")]
+lay = [(784,"input"), (64, "sigmoid"), (10, "softmax")]
 
-g = NN(pixelsconv, val, lay, "CEL", qcmpixconv, qcmval, iterations=1, batch=1, graph=False, coefcv=0.1, color=False, kernel=3, padding=1, stride=1, convlay=1)
+g = NN(pix, val, lay, "CEL", qcmpix, qcmval, iterations=1, batch=1, graph=False, coefcv=0.1, color=False, kernel=3, padding=1, stride=1, convlay=0)
 
 g.train()
 
-print(g.tauxconv())
+print(g.tauxrapide())
