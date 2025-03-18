@@ -17,6 +17,7 @@ from Auxiliares import takeinputs, Draw
 
 # PARA EL FUTURO:
 # - Cambiar como entran los inputs en convolution para que sea en np.ndarray
+# - Hacer convolution from scratch
 
 np.seterr(all='raise')
 
@@ -219,6 +220,9 @@ class NN:
 
         else:
             raise "You forgot to specify the activation function"
+
+    def convolution(self, image, kernel):
+
 
     def convolutionrapide(self, image, kernel, mode="same"): #faire convolution #ou convolve(kernel,image)
         return np.array(correlate2d(image, kernel, mode=mode))
