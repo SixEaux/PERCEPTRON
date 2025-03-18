@@ -14,6 +14,10 @@ from matplotlib import pyplot as plt
 #ORGANIZACION
 from Auxiliares import takeinputs, Draw
 
+
+# PARA EL FUTURO:
+# - Cambiar como entran los inputs en convolution para que sea en np.ndarray
+
 np.seterr(all='raise')
 
 @dataclass
@@ -96,7 +100,16 @@ class NN:
         return np.dot(rgbimage,[0.299, 0.587, 0.114])
 
     def processdata(self, pix, color, qcm, conv): #mettre les donnees sous la bonne forme
-        if not conv:
+        if conv:
+            if color:
+                datamod = [self.converttogreyscale(a) / 255 for a in pix]
+            else:
+                if qcm:
+                    datamod = [a for a in pix]
+                else:
+                    datamod = [a / 255 for a in pix]
+
+        else:
             if color:
                 pix = self.converttogreyscale(pix)
 
@@ -104,9 +117,6 @@ class NN:
                 datamod = pix
             else:
                 datamod = pix/255
-
-        else:
-            datamod = [a/255 for a in pix]
 
         return datamod
 
@@ -304,113 +314,121 @@ class NN:
 
         return
 
-    def trainsimple(self):
-        C = []
-        for _ in range(self.iter):
-            L = []
-            for p in range(self.pix.shape[1]):
-                forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
+    def choix(self, y):
+        return np.argmax(y,axis=0) #, keepdims=True
 
-                dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
-
-                self.actualiseweights(dw, db, 1, dc)
-
-                L.append(loss)
-
-            C.append(np.average(L))
-
-        if self.graph:
-            plt.plot([i for i in range(self.iter)], C)
-            plt.xlabel('Iteration')
-            plt.ylabel('Loss')
-            plt.title('Fonction de Cout')
-            plt.show()
-
-        return
-
-    def trainsimpleconv(self):
-        for _ in range(self.iter):
-            for p in range(len(self.pix)):
-                forw = self.forwardprop(self.pix[p])
-
-                dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
-
-                self.actualiseweights(dw, db, 1, dc)
-
-        return
-
-    def trainbatch(self):
-        for _ in range(self.iter):
-            nbbatch = self.pix.shape[1] // self.lenbatch
-            for bat in range(nbbatch):
-                matrice = self.pix[:, bat*self.lenbatch:(bat+1)*self.lenbatch].reshape(-1, self.lenbatch)
-
-                forw = self.forwardprop(matrice)
-
-                dw, db, loss, dc = self.backprop(self.vecteurbatch(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
-
-                self.actualiseweights(dw, db, self.lenbatch)
-        return
+    def vecteur(self, val):
+        if self.lenbatch == 1:
+            newval = [val]
+        else:
+            newval = val
+        return np.eye(10)[newval].T
 
     def train(self):
         if self.lenbatch > 1:
             self.trainbatch()
         elif self.lenbatch == 1:
-            if self.nbconv > 0:
-                self.trainsimpleconv()
-            else:
-                self.trainsimple()
+            self.trainsimple()
+        return
 
-    def choix(self, y):
-        return np.argmax(y,axis=0) #, keepdims=True
+    def trainsimple(self):
+        if self.nbconv == 0:
+            C = []
+            for _ in range(self.iter):
+                L = []
+                for p in range(self.pix.shape[1]):
+                    forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
 
-    def vecteur(self, val):
-        return np.eye(10)[[val]].T
-
-    def vecteurbatch(self, val):
-        return np.eye(10)[val].T
-
-    def tauxlent(self): #go in all the test and see accuracy
-        nbbien = 0
-        for image in range(self.qcmpix.shape[1]):
-            forw = self.forwardprop(self.qcmpix[:, image].reshape(-1,1))
-
-            observed = self.choix(forw[0])
-
-            if observed == self.qcmval[image]:
-                nbbien += 1
-            else:
-                if self.aprentissagedynamique:
-
-                    dw, db, _, dc = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], 1)
-
+                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
 
                     self.actualiseweights(dw, db, 1, dc)
 
-        return nbbien*100 / self.qcmpix.shape[1]
+                    L.append(loss)
+
+                C.append(np.average(L))
+
+            if self.graph:
+                plt.plot([i for i in range(self.iter)], C)
+                plt.xlabel('Iteration')
+                plt.ylabel('Loss')
+                plt.title('Fonction de Cout')
+                plt.show()
+
+        else:
+            for _ in range(self.iter):
+                for p in range(len(self.pix)):
+                    forw = self.forwardprop(self.pix[p])
+
+                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+
+                    self.actualiseweights(dw, db, 1, dc)
+
+        return
+
+    def trainbatch(self):
+        if self.nbconv == 0:
+            for _ in range(self.iter):
+                nbbatch = self.pix.shape[1] // self.lenbatch
+                for bat in range(nbbatch):
+                    matrice = self.pix[:, bat*self.lenbatch:(bat+1)*self.lenbatch].reshape(-1, self.lenbatch)
+
+                    forw = self.forwardprop(matrice)
+
+                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
+
+                    self.actualiseweights(dw, db, self.lenbatch)
+
+        else:
+            print("EN TRAVAUX")
+
+        return
+
+    def tauxlent(self): #go in all the test and see accuracy
+        if self.nbconv == 0:
+            nbbien = 0
+            for image in range(self.qcmpix.shape[1]):
+                forw = self.forwardprop(self.qcmpix[:, image].reshape(-1,1))
+
+                observed = self.choix(forw[0])
+
+                if observed == self.qcmval[image]:
+                    nbbien += 1
+                else:
+                    if self.aprentissagedynamique:
+
+                        dw, db, _, dc = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], 1)
+
+
+                        self.actualiseweights(dw, db, 1, dc)
+
+            return nbbien*100 / self.qcmpix.shape[1]
+
+        else:
+            nbbien = 0
+            for image in range(len(self.qcmpix)):
+                forw = self.forwardprop(self.qcmpix[image])
+
+                observed = self.choix(forw[0])
+
+                if observed == self.qcmval[image]:
+                    nbbien += 1
+
+            return nbbien * 100 / len(self.qcmpix)
 
     def tauxrapide(self):
-        forw = self.forwardprop(self.qcmpix.reshape(784,-1))
-
-        observed = self.choix(forw[0])
-
-        difference = observed - self.qcmval
-
-        nbbien = np.count_nonzero(difference==0)
-
-        return nbbien*100 / self.qcmpix.shape[1]
-
-    def tauxconv(self):
-        nbbien = 0
-        for image in range(len(self.qcmpix)):
-            forw = self.forwardprop(self.qcmpix[image])
+        if self.nbconv == 0:
+            forw = self.forwardprop(self.qcmpix.reshape(784,-1))
 
             observed = self.choix(forw[0])
 
-            if observed == self.qcmval[image]:
-                nbbien += 1
+            difference = observed - self.qcmval
 
-        return nbbien * 100 / len(self.qcmpix)
+            nbbien = np.count_nonzero(difference==0)
+
+            return nbbien*100 / self.qcmpix.shape[1]
+        else:
+            print("EN TRAVAUX")
+            return
 
     def prediction(self, image):
         self.printcouleur(image, "")
@@ -423,8 +441,6 @@ class NN:
         cnv = Draw()
 
         px = cnv.pixels
-
-        # self.printbasesimple(px)
 
         self.prediction(px)
 
