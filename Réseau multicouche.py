@@ -57,7 +57,7 @@ class NN:
         self.cvcoef = par.coefcv #learning rate
 
         # POUR CNN
-        self.kernel = par.kernel #lado filtro
+        self.lenkernel = par.kernel #lado filtro
         self.padding = par.padding #espacio con bordes
         self.stride = par.stride #de cuanto se mueve el filtro
 
@@ -65,7 +65,7 @@ class NN:
 
         d = 28
         for i in range(self.nbconv):
-            dim = (d+2*self.padding-self.kernel)//self.stride + 1
+            dim = np.floor((d + 2 * self.padding - self.lenkernel) // self.stride + 1)
             self.convdims.append(dim)
             d = dim
 
@@ -128,7 +128,7 @@ class NN:
             lst[0] = (self.convdims[-1]**2, "input")
 
         for c in range(convlay):
-            param["cl" + str(c)] = np.random.uniform(-1,1,size=(self.kernel,self.kernel))
+            param["cl" + str(c)] = np.random.uniform(-1, 1, size=(self.lenkernel, self.lenkernel))
 
         for l in range(1, len(lst)):
             param["w" + str(l-1)] = np.random.randn(lst[l][0], lst[l-1][0]) * np.sqrt(1 / lst[l-1][0]) #nbneurons * nbinput
@@ -221,14 +221,48 @@ class NN:
         else:
             raise "You forgot to specify the activation function"
 
-    def convolution(self, image, kernel):
+    def convolution2d(self, image, kernel, dimout=None): #dimout est calculer avant ou
+        imagepad = np.pad(image, (1,1)) #padding
 
+        if not dimout:
+            dimout = int((image.shape + 2 * self.padding - self.lenkernel) / self.stride) + 1
+
+        output = np.zeros(dimout)
+
+        for l in range(output.shape[0]):
+            ldebut = l * self.stride
+            lfin = ldebut + self.lenkernel
+
+            for c in range(output.shape[1]):
+                cdebut = c * self.stride
+                cfin = cdebut + self.lenkernel
+
+                output[l][c] = np.sum(imagepad[ldebut:lfin, cdebut:cfin] * kernel)
+
+        return output
+
+    def pooling(self, image, stride, fctpool):
+
+        dimout = int((image.shape - self.lenkernel) / self.stride) + 1
+        output = np.zeros(dimout)
+
+        for l in range(output.shape[0]):
+            ldebut = l * stride
+            lfin = ldebut + self.lenkernel
+
+            for c in range(output.shape[1]):
+                cdebut = c * stride
+                cfin = cdebut + self.lenkernel
+
+                output[l][c] = fctpool(image[ldebut:lfin, cdebut:cfin])
+
+        return output
 
     def convolutionrapide(self, image, kernel, mode="same"): #faire convolution #ou convolve(kernel,image)
         return np.array(correlate2d(image, kernel, mode=mode))
 
     def maxpoolingrapide(self, image):
-        return block_reduce(image, (self.kernel,self.kernel), np.max)
+        return block_reduce(image, (self.lenkernel, self.lenkernel), np.max)
 
     def flatening(self, image):
         return image.reshape((-1,1))
@@ -270,7 +304,7 @@ class NN:
 
         dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
         db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
-        dc = [np.zeros((self.kernel,self.kernel)) for i in range(self.nbconv)]
+        dc = [np.zeros((self.lenkernel, self.lenkernel)) for i in range(self.nbconv)]
 
         delta = self.errorfunc[1](activations[-1], expected, nbinp)
 
@@ -468,7 +502,3 @@ lay = [(784,"input"), (64, "sigmoid"), (10, "softmax")]
 parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay)
 
 g = NN(parametros)
-
-g.train()
-
-print(g.tauxrapide())
