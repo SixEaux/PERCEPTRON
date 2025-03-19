@@ -16,8 +16,10 @@ from Auxiliares import takeinputs, Draw
 
 
 # PARA EL FUTURO:
-# - Cambiar como entran los inputs en convolution para que sea en np.ndarray
+# - Cambiar como entran los inputs en convolution para que sea en np.ndarray (es decir crear una array que sea un (28*28*60000) o hacer reshape a cada vez)
+# - no tener que cambiar pix y pixconv a cada vez
 # - Hacer convolution from scratch
+
 
 np.seterr(all='raise')
 
@@ -40,14 +42,16 @@ class Parametros:
     color: bool = False
 
     #CNN
-    kernel: int = 2
+    convlay: int = 0
+    kernel: int = 3
     padding: int = 1
     stride: int = 1
-    convlay: int = 0
+    poolstride: int = 5
 
 
 class NN:
     def __init__(self, par = Parametros):
+
         self.iter = par.iterations  # nombre iteration entrainement
         self.nblay = len(par.infolay)-1 # nombre de layers
         self.nbconv = par.convlay # numero layers convolution
@@ -60,13 +64,15 @@ class NN:
         self.lenkernel = par.kernel #lado filtro
         self.padding = par.padding #espacio con bordes
         self.stride = par.stride #de cuanto se mueve el filtro
+        self.poolstride = par.poolstride
 
         self.convdims = [] #dimensiones salida convolution
 
         d = 28
         for i in range(self.nbconv):
-            dim = np.floor((d + 2 * self.padding - self.lenkernel) // self.stride + 1)
-            self.convdims.append(dim)
+            dim = int(((d + 2 * self.padding - self.lenkernel) / self.stride) + 1) #dimension apres convolution
+            dimpool = int(((dim - self.lenkernel) / self.poolstride) + 1)  #dimension apres pooling layer
+            self.convdims.append((dim, dimpool))
             d = dim
 
         # INPUTS POUR ENTRAINEMENT
@@ -125,7 +131,7 @@ class NN:
         param = {}
 
         if self.nbconv>0:
-            lst[0] = (self.convdims[-1]**2, "input")
+            lst[0] = (self.convdims[-1][1]**2, "input")
 
         for c in range(convlay):
             param["cl" + str(c)] = np.random.uniform(-1, 1, size=(self.lenkernel, self.lenkernel))
@@ -222,10 +228,10 @@ class NN:
             raise "You forgot to specify the activation function"
 
     def convolution2d(self, image, kernel, dimout=None): #dimout est calculer avant ou
-        imagepad = np.pad(image, (1,1)) #padding
+        imagepad = np.pad(image, (self.padding,self.padding)) #padding
 
         if not dimout:
-            dimout = int((image.shape + 2 * self.padding - self.lenkernel) / self.stride) + 1
+            dimout = (int((image.shape[0] + 2 * self.padding - self.lenkernel) / self.stride) + 1, int((image.shape[1] + 2 * self.padding - self.lenkernel) / self.stride) + 1)
 
         output = np.zeros(dimout)
 
@@ -241,20 +247,20 @@ class NN:
 
         return output
 
-    def pooling(self, image, stride, fctpool):
+    def pooling(self, image): #para poder utilizar np.max hace falta un mask para guardar de donde viene el max / si average no hace falta
 
-        dimout = int((image.shape - self.lenkernel) / self.stride) + 1
+        dimout = (int((image.shape[0] - self.lenkernel) / self.poolstride) + 1,int((image.shape[1] - self.lenkernel) / self.poolstride) + 1)
         output = np.zeros(dimout)
 
         for l in range(output.shape[0]):
-            ldebut = l * stride
+            ldebut = l * self.poolstride
             lfin = ldebut + self.lenkernel
 
             for c in range(output.shape[1]):
-                cdebut = c * stride
+                cdebut = c * self.poolstride
                 cfin = cdebut + self.lenkernel
 
-                output[l][c] = fctpool(image[ldebut:lfin, cdebut:cfin])
+                output[l][c] = np.average(image[ldebut:lfin, cdebut:cfin])
 
         return output
 
@@ -276,10 +282,10 @@ class NN:
 
         for c in range(self.nbconv):
             kernel = self.parameters["cl" + str(c)]
-            conv = self.convolutionrapide(outlast, kernel)
+            conv = self.convolution2d(outlast, kernel)
             zs.append(conv)
-            # maxpool = self.maxpoolingrapide(conv)
-            outlast = self.fctconv[0](conv)
+            pool = self.pooling(conv)
+            outlast = self.fctconv[0](pool)
             if c == self.nbconv - 1:
                 outlast = self.flatening(outlast)
                 activations.append(outlast)
@@ -311,22 +317,35 @@ class NN:
         dw[-1] += np.dot(delta, activations[-2].T)
         db[-1] += np.sum(delta, axis=1, keepdims=True)
 
-        for l in range(self.nblay - 2, self.nbconv - 1, -1): #64*10 ya hecho hay que ir directos al 784*64
-            w = self.parameters["w" + str(l + 1)]
-            dif = self.parameters["diff" + str(l)](zs[l + self.nbconv])
+        for l in range(self.nblay + self.nbconv - 2, self.nbconv - 1, -1): #64*10 ya hecho hay que ir directos al 784*64
+            # probleme avec les indices corriger cela
+
+            w = self.parameters["w" + str(l - self.nbconv + 1)]
+            dif = self.parameters["diff" + str(l - self.nbconv)](zs[l - self.nbconv])
 
             delta = np.dot(w.T, delta) * dif
 
-            dwl = np.dot(delta, activations[l + self.nbconv].T)
+            dwl = np.dot(delta, activations[l - self.nbconv].T)
             dbl = np.sum(delta, axis=1, keepdims=True)
 
-            dw[l] += dwl
-            db[l] += dbl
+            dw[l - self.nbconv] += dwl
+            db[l - self.nbconv] += dbl
 
+
+        # Cambiar desde aqui
         if self.nbconv>0:
+            # Calcular ultimo delta para el conv layer
+
             ultimoweight = self.parameters["w0"]
-            ultimadif = self.fctconv[1](zs[self.nbconv - 1])
-            delta = np.dot(ultimoweight.T, delta).reshape(ultimadif.shape) * ultimadif
+            ultimadif = self.fctconv[1](zs[self.nbconv])
+            print(ultimadif.shape)
+            delta = np.dot(ultimoweight.T, delta) * ultimadif
+
+
+            #hacer average pooling pero al reves
+
+
+
 
             dc[-1] += self.convolutionrapide(activations[self.nbconv-1], delta, mode="valid")
 
@@ -499,6 +518,10 @@ val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
 lay = [(784,"input"), (64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay)
+parametros = Parametros(pix=pixelsconv, vales=val, qcmpix=qcmpixconv, qcmval=qcmval, infolay=lay, convlay=1, padding=0)
 
 g = NN(parametros)
+
+forw = g.forwardprop(g.pix[10])
+
+g.backprop(g.vecteur(g.vales[10]), forw[1], forw[2], 1)
