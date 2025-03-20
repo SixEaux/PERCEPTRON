@@ -18,7 +18,7 @@ from Auxiliares import takeinputs, Draw
 # PARA EL FUTURO:
 # - Cambiar como entran los inputs en convolution para que sea en np.ndarray (es decir crear una array que sea un (28*28*60000) o hacer reshape a cada vez)
 # - no tener que cambiar pix y pixconv a cada vez
-# - Hacer convolution from scratch
+# - Añadir que learning rate cambie con variacion de lost function
 
 
 np.seterr(all='raise')
@@ -44,12 +44,13 @@ class Parametros:
     #CNN
     convlay: int = 0
     kernel: int = 3
+    kernelpool: int = 5
     padding: int = 1
     stride: int = 1
     poolstride: int = 5
 
 
-class NN:
+class CNN:
     def __init__(self, par = Parametros):
 
         self.iter = par.iterations  # nombre iteration entrainement
@@ -65,13 +66,14 @@ class NN:
         self.padding = par.padding #espacio con bordes
         self.stride = par.stride #de cuanto se mueve el filtro
         self.poolstride = par.poolstride
+        self.lenkernelpool = par.kernelpool
 
         self.convdims = [] #dimensiones salida convolution
 
         d = 28
         for i in range(self.nbconv):
             dim = int(((d + 2 * self.padding - self.lenkernel) / self.stride) + 1) #dimension apres convolution
-            dimpool = int(((dim - self.lenkernel) / self.poolstride) + 1)  #dimension apres pooling layer
+            dimpool = int(((dim - self.lenkernelpool) / self.poolstride) + 1)  #dimension apres pooling layer
             self.convdims.append((dim, dimpool))
             d = dim
         print(self.convdims)
@@ -82,7 +84,7 @@ class NN:
 
         # BASE DE DONNÉES POUR LES TESTS
         self.qcmpix = self.processdata(par.qcmpix, par.color, True, par.convlay>0)
-        self.qcmval = qcmval
+        self.qcmval = par.qcmval
 
         self.parameters = self.params(par.infolay, par.convlay) #creer les parametres dans un dico/ infolay doit avoir tout au debut la longueur de l'input
         self.dimweights = [(par.infolay[l][0], par.infolay[l-1][0]) for l in range(1, len(par.infolay))] #dimensiones pesos para backprop
@@ -244,24 +246,24 @@ class NN:
                 cdebut = c * self.stride
                 cfin = cdebut + self.lenkernel
 
-                output[l][c] = np.sum(imagepad[ldebut:lfin, cdebut:cfin] * kernel)
+                output[l][c] += np.sum(imagepad[ldebut:lfin, cdebut:cfin] * kernel)
 
         return output
 
     def pooling(self, image): #para poder utilizar np.max hace falta un mask para guardar de donde viene el max / si average no hace falta
 
-        dimout = (int((image.shape[0] - self.lenkernel) / self.poolstride) + 1,int((image.shape[1] - self.lenkernel) / self.poolstride) + 1)
+        dimout = (int((image.shape[0] - self.lenkernelpool) / self.poolstride) + 1,int((image.shape[1] - self.lenkernelpool) / self.poolstride) + 1)
         output = np.zeros(dimout)
 
         for l in range(output.shape[0]):
             ldebut = l * self.poolstride
-            lfin = ldebut + self.lenkernel
+            lfin = ldebut + self.lenkernelpool
 
             for c in range(output.shape[1]):
                 cdebut = c * self.poolstride
-                cfin = cdebut + self.lenkernel
+                cfin = cdebut + self.lenkernelpool
 
-                output[l][c] = np.average(image[ldebut:lfin, cdebut:cfin])
+                output[l][c] += np.average(image[ldebut:lfin, cdebut:cfin])
 
         return output
 
@@ -306,6 +308,26 @@ class NN:
 
         return outlast, zs, activations #out last c'est la prediction et vieux c'est pour backprop
 
+    def backpool(self, dapres, dimsortie):
+        s = dapres.shape
+        out = np.zeros(dimsortie)
+
+        long = (self.lenkernel * self.lenkernel)
+
+        for l in range(0, s[0]):
+
+            ldebut = l * self.poolstride
+            lfin = ldebut + self.lenkernel
+
+            for c in range(0, s[1]):
+
+                cdebut = c * self.poolstride
+                cfin = cdebut + self.lenkernel
+
+                out[ldebut:lfin, cdebut:cfin] += np.full((self.lenkernel, self.lenkernel) , dapres[l,c] / long)
+
+        return out
+
     def backprop(self, expected, zs, activations, nbinp):
         C = self.errorfunc[0](activations[-1], expected, nbinp)
 
@@ -340,13 +362,18 @@ class NN:
             ultimoweight = self.parameters["w0"]
             # ultimadif = self.fctconv[1](zs[self.nbconv - 1])
 
-            s = self.convdims[-1][1]
-            delta = np.dot(ultimoweight.T, delta).reshape(s,s) # * ultimadif
+            s = self.convdims[-1]
+            delta = np.dot(ultimoweight.T, delta).reshape(s[1],s[1]) # * ultimadif
 
             #hacer average pooling pero al reves
 
-            deltaavg = delta/self.lenkernel
+            delta = self.backpool(delta, (s[0], s[0]))
 
+            delta = np.pad(delta, (self.padding, self.padding))
+
+            filtre = self.parameters["cl" + str(self.nbconv - 1)]
+
+            delta = self.convolution2d(delta, filtre)
 
             dc[-1] += self.convolution2d(activations[self.nbconv-1], delta)
 
@@ -354,9 +381,9 @@ class NN:
                 filtre = self.parameters["cl" + str(c)]
                 diff = self.fctconv[1](zs[c])
 
-                delta = self.convolutionrapide(np.flipud(np.fliplr(filtre)), delta, mode="full") * diff
+                delta = self.convolution2d(np.flipud(np.fliplr(filtre)), delta) * diff
 
-                dLdf = self.convolutionrapide(activations[c], delta, mode="valid")
+                dLdf = self.convolution2d(activations[c], delta)
 
                 dc[c] += dLdf
 
@@ -519,9 +546,9 @@ val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
 lay = [(784,"input"), (64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pixelsconv, vales=val, qcmpix=qcmpixconv, qcmval=qcmval, infolay=lay, convlay=1, padding=0)
+parametros = Parametros(pix=pixelsconv, vales=val, qcmpix=qcmpixconv, qcmval=qcmval, infolay=lay, convlay=1, padding=1)
 
-g = NN(parametros)
+g = CNN(parametros)
 
 forw = g.forwardprop(g.pix[10])
 
