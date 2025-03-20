@@ -74,6 +74,7 @@ class NN:
             dimpool = int(((dim - self.lenkernel) / self.poolstride) + 1)  #dimension apres pooling layer
             self.convdims.append((dim, dimpool))
             d = dim
+        print(self.convdims)
 
         # INPUTS POUR ENTRAINEMENT
         self.pix = self.processdata(par.pix, par.color, False, par.convlay>0) #pix de train
@@ -283,9 +284,9 @@ class NN:
         for c in range(self.nbconv):
             kernel = self.parameters["cl" + str(c)]
             conv = self.convolution2d(outlast, kernel)
-            zs.append(conv)
             pool = self.pooling(conv)
-            outlast = self.fctconv[0](pool)
+            zs.append(conv)
+            outlast = pool # self.fctconv[0](pool)
             if c == self.nbconv - 1:
                 outlast = self.flatening(outlast)
                 activations.append(outlast)
@@ -337,17 +338,17 @@ class NN:
             # Calcular ultimo delta para el conv layer
 
             ultimoweight = self.parameters["w0"]
-            ultimadif = self.fctconv[1](zs[self.nbconv - 1])
-            print(ultimadif.shape)
-            delta = np.dot(ultimoweight.T, delta) * ultimadif
+            # ultimadif = self.fctconv[1](zs[self.nbconv - 1])
 
+            s = self.convdims[-1][1]
+            delta = np.dot(ultimoweight.T, delta).reshape(s,s) # * ultimadif
 
             #hacer average pooling pero al reves
 
+            deltaavg = delta/self.lenkernel
 
 
-
-            dc[-1] += self.convolutionrapide(activations[self.nbconv-1], delta, mode="valid")
+            dc[-1] += self.convolution2d(activations[self.nbconv-1], delta)
 
             for c in range(self.nbconv - 2, -1, -1):
                 filtre = self.parameters["cl" + str(c)]
