@@ -317,19 +317,19 @@ class NN:
         dw[-1] += np.dot(delta, activations[-2].T)
         db[-1] += np.sum(delta, axis=1, keepdims=True)
 
-        for l in range(self.nblay + self.nbconv - 2, self.nbconv - 1, -1): #64*10 ya hecho hay que ir directos al 784*64
+        for l in range(self.nblay - 2, self.nbconv - 2, -1): #64*10 ya hecho hay que ir directos al 784*64
             # probleme avec les indices corriger cela
 
-            w = self.parameters["w" + str(l - self.nbconv + 1)]
-            dif = self.parameters["diff" + str(l - self.nbconv)](zs[l - self.nbconv])
+            w = self.parameters["w" + str(l + 1)]
+            dif = self.parameters["diff" + str(l)](zs[l + self.nbconv])
 
             delta = np.dot(w.T, delta) * dif
 
-            dwl = np.dot(delta, activations[l - self.nbconv].T)
+            dwl = np.dot(delta, activations[l + self.nbconv].T)
             dbl = np.sum(delta, axis=1, keepdims=True)
 
-            dw[l - self.nbconv] += dwl
-            db[l - self.nbconv] += dbl
+            dw[l] += dwl
+            db[l] += dbl
 
 
         # Cambiar desde aqui
@@ -337,7 +337,7 @@ class NN:
             # Calcular ultimo delta para el conv layer
 
             ultimoweight = self.parameters["w0"]
-            ultimadif = self.fctconv[1](zs[self.nbconv])
+            ultimadif = self.fctconv[1](zs[self.nbconv - 1])
             print(ultimadif.shape)
             delta = np.dot(ultimoweight.T, delta) * ultimadif
 
