@@ -544,6 +544,8 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
+
+
 lay = [(784,"input"), (64, "sigmoid"), (10, "softmax")]
 
 parametros = Parametros(pix=pixelsconv, vales=val, qcmpix=qcmpixconv, qcmval=qcmval, infolay=lay, convlay=1, padding=1)
