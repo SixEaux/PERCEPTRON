@@ -21,7 +21,7 @@ from Auxiliares import takeinputs, Draw
 # - Añadir que learning rate cambie con variacion de lost function
 
 
-np.seterr(all='raise')
+# np.seterr(all='raise')
 
 @dataclass
 class Parametros:
@@ -141,7 +141,7 @@ class CNN:
         for c in range(1, len(infoconvlay)):
             param["cl" + str(c-1)] = np.random.uniform(-1, 1, size=(self.lenkernel, self.lenkernel, infoconvlay[c][0]))
             param["fctcl" + str(c-1)] = self.getfct(infoconvlay[c][1])
-            self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][0], infoconvlay[c][0]) #add at the end the number of filters
+            self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][1], infoconvlay[c][0]) #add at the end the number of filters
 
         if self.nbconv > 0:
             infolay[0] = (infolay[0][0]*infolay[0][0]*param["cl" + str(self.nbconv - 1)].shape[2], "input")
@@ -237,22 +237,22 @@ class CNN:
             raise "You forgot to specify the activation function"
 
     def convolution2d(self, image, kernel, dimout=None): #dimout est calculer avant ou
-        imagepad = np.pad(image, (self.padding,self.padding)) #padding
+        lenkernel = kernel.shape[0]
 
         if not dimout:
-            dimout = (int((image.shape[0] + 2 * self.padding - self.lenkernel) / self.stride) + 1, int((image.shape[1] + 2 * self.padding - self.lenkernel) / self.stride) + 1)
+            dimout = (int((image.shape[0] + 2 * self.padding - lenkernel) / self.stride) + 1, int((image.shape[1] + 2 * self.padding - lenkernel) / self.stride) + 1)
 
         output = np.zeros(dimout)
 
         for l in range(output.shape[0]):
             ldebut = l * self.stride
-            lfin = ldebut + self.lenkernel
+            lfin = ldebut + lenkernel
 
             for c in range(output.shape[1]):
                 cdebut = c * self.stride
-                cfin = cdebut + self.lenkernel
+                cfin = cdebut + lenkernel
 
-                output[l][c] += np.sum(imagepad[ldebut:lfin, cdebut:cfin] * kernel)
+                output[l][c] += np.sum(image[ldebut:lfin, cdebut:cfin] * kernel)
 
         return output
 
@@ -282,6 +282,9 @@ class CNN:
     def flatening(self, image):
         return image.reshape((-1,1))
 
+    def paddington(self, image, pad):
+        return np.pad(image, (pad, pad))  # padding
+
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
 
@@ -299,7 +302,7 @@ class CNN:
 
         for c in range(self.nbconv):
             kernel = self.parameters["cl" + str(c)]
-            conv = self.convolution2d(outlast, kernel)
+            conv = self.convolution2d(self.paddington(outlast, self.padding), kernel)
             pool = self.pooling(conv)
 
             if c == self.nbconv - 1:
@@ -309,7 +312,7 @@ class CNN:
                 outlast = pool
                 zsconv.append(outlast)
 
-            outlast = self.fctconv[0](pool)
+            outlast = self.fctconv[0](outlast)
             activationsconv.append(outlast)
 
         activationslay.append(activationsconv[-1])
@@ -331,19 +334,19 @@ class CNN:
         s = dapres.shape
         out = np.zeros(dimsortie)
 
-        long = (self.lenkernel * self.lenkernel)
+        long = (self.lenkernelpool * self.lenkernelpool)
 
         for l in range(0, s[0]):
 
             ldebut = l * self.poolstride
-            lfin = ldebut + self.lenkernel
+            lfin = ldebut + self.lenkernelpool
 
             for c in range(0, s[1]):
 
                 cdebut = c * self.poolstride
-                cfin = cdebut + self.lenkernel
+                cfin = cdebut + self.lenkernelpool
 
-                out[ldebut:lfin, cdebut:cfin] += np.full((self.lenkernel, self.lenkernel) , dapres[l,c] / long)
+                out[ldebut:lfin, cdebut:cfin] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[l,c] / long)
 
         return out
 
@@ -352,14 +355,14 @@ class CNN:
 
         dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
         db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
-        dc = [np.zeros((self.lenkernel, self.lenkernel)) for i in range(self.nbconv)]
+        dc = [np.zeros((self.lenkernel, self.lenkernel, self.convdims[i][2])) for i in range(self.nbconv)]
 
         delta = self.errorfunc[1](activationslay[-1], expected, nbinp)
 
         dw[-1] += np.dot(delta, activationslay[-2].T)
         db[-1] += np.sum(delta, axis=1, keepdims=True)
 
-        for l in range(self.nblay - 2, -1, -1): #64*10 ya hecho hay que ir directos al 784*64
+        for l in range(self.nblay - 2, -1, -1):
             # probleme avec les indices corriger cela
 
             w = self.parameters["w" + str(l + 1)]
@@ -379,28 +382,23 @@ class CNN:
             # Calcular ultimo delta para el conv layer
 
             ultimoweight = self.parameters["w0"]
-            ultimadif = self.fctconv[1](zslay[0])
+            ultimadif = self.fctconv[1](zsconv[-1])
 
             s = self.convdims[-1]
-            delta = np.dot(ultimoweight.T, delta).reshape(s[1],s[1], s[2]) * ultimadif
+
+            delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1])
 
             #hacer average pooling pero al reves
 
             delta = self.backpool(delta, (s[0], s[0]))
 
-            delta = np.pad(delta, (self.padding, self.padding))
-
-            filtre = self.parameters["cl" + str(self.nbconv - 1)]
-
-            delta = self.convolution2d(delta, filtre)
-
-            dc[-1] += self.convolution2d(activationsconv[self.nbconv-2], delta)
+            dc[-1] += self.convolution2d(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2])
 
             for c in range(self.nbconv - 2, -1, -1):
                 filtre = self.parameters["cl" + str(c)]
                 diff = self.fctconv[1](zsconv[c])
 
-                delta = self.convolution2d(np.flipud(np.fliplr(filtre)), delta) * diff
+                delta = self.convolution2d(filtre, delta) * diff
 
                 dLdf = self.convolution2d(activationsconv[c-1], delta)
 
@@ -443,7 +441,7 @@ class CNN:
                 for p in range(self.pix.shape[1]):
                     forw = self.forwardprop(self.pix[:,p].reshape(-1,1))
 
-                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], forw[3], forw[4], 1)
 
                     self.actualiseweights(dw, db, 1, dc)
 
@@ -463,7 +461,7 @@ class CNN:
                 for p in range(len(self.pix)):
                     forw = self.forwardprop(self.pix[p])
 
-                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], 1)
+                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], forw[3], forw[4], 1)
 
                     self.actualiseweights(dw, db, 1, dc)
 
@@ -478,7 +476,7 @@ class CNN:
 
                     forw = self.forwardprop(matrice)
 
-                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], self.lenbatch)
+                    dw, db, loss, dc = self.backprop(self.vecteur(self.vales[bat*self.lenbatch:(bat+1)*self.lenbatch]), forw[1], forw[2], forw[3], forw[4], self.lenbatch)
 
                     self.actualiseweights(dw, db, self.lenbatch)
 
@@ -500,7 +498,7 @@ class CNN:
                 else:
                     if self.aprentissagedynamique:
 
-                        dw, db, _, dc = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], 1)
+                        dw, db, _, dc = self.backprop(self.vecteur(self.vales[image]), forw[1], forw[2], forw[3], forw[4], 1)
 
 
                         self.actualiseweights(dw, db, 1, dc)
@@ -571,7 +569,6 @@ parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infola
 
 g = CNN(parametros)
 
-forw = g.forwardprop(g.pix[10])
-print(forw[0])
+g.train()
 
-g.backprop(g.vecteur(g.vales[10]), forw[1], forw[2], forw[3], forw[4], 1)
+print(g.tauxlent())
