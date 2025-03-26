@@ -21,7 +21,7 @@ from Auxiliares import takeinputs, Draw
 # - Añadir que learning rate cambie con variacion de lost function
 
 
-# np.seterr(all='raise')
+np.seterr(all='raise')
 
 @dataclass
 class Parametros:
@@ -240,19 +240,21 @@ class CNN:
         lenkernel = kernel.shape[0]
 
         if not dimout:
-            dimout = (int((image.shape[0] + 2 * self.padding - lenkernel) / self.stride) + 1, int((image.shape[1] + 2 * self.padding - lenkernel) / self.stride) + 1)
+            dimout = (int((image.shape[0] + 2 * self.padding - lenkernel) / self.stride) + 1, int((image.shape[1] + 2 * self.padding - lenkernel) / self.stride) + 1, int((image.shape[2] + 2 * self.padding - lenkernel) / self.stride) + 1)
 
         output = np.zeros(dimout)
 
-        for l in range(output.shape[0]):
-            ldebut = l * self.stride
-            lfin = ldebut + lenkernel
+        for d in range(output.shape[2]):
 
-            for c in range(output.shape[1]):
-                cdebut = c * self.stride
-                cfin = cdebut + lenkernel
+            for l in range(output.shape[0]):
+                ldebut = l * self.stride
+                lfin = ldebut + lenkernel
 
-                output[l][c] += np.sum(image[ldebut:lfin, cdebut:cfin] * kernel)
+                for c in range(output.shape[1]):
+                    cdebut = c * self.stride
+                    cfin = cdebut + lenkernel
+
+                    output[l][c][d] += np.sum(image[ldebut:lfin, cdebut:cfin] * kernel[:,:,d])
 
         return output
 
@@ -565,10 +567,11 @@ convlay = [(784,"input"), (1, "relu")]
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=1)
 
 g = CNN(parametros)
 
-g.train()
+forw = g.forwardprop(g.pix[10].reshape(28,28,-1))
+print(g.vales[10])
 
-print(g.tauxlent())
+dw, db, loss, dc = g.backprop(g.vecteur(g.vales[10]), forw[1], forw[2], forw[3], forw[4], 1)
