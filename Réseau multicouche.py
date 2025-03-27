@@ -43,8 +43,8 @@ class Parametros:
     color: bool = False
 
     #CNN
-    kernel: int = 4
-    kernelpool: int = 5
+    kernel: int = 5
+    kernelpool: int = 3
     padding: int = 1
     stride: int = 1
     poolstride: int = 5
@@ -262,18 +262,20 @@ class CNN:
 
     def pooling(self, image): #para poder utilizar np.max hace falta un mask para guardar de donde viene el max / si average no hace falta
 
-        dimout = (int((image.shape[0] - self.lenkernelpool) / self.poolstride) + 1,int((image.shape[1] - self.lenkernelpool) / self.poolstride) + 1)
+        dimout = (int((image.shape[0] - self.lenkernelpool) / self.poolstride) + 1,int((image.shape[1] - self.lenkernelpool) / self.poolstride) + 1, image.shape[2])
         output = np.zeros(dimout)
 
-        for l in range(output.shape[0]):
-            ldebut = l * self.poolstride
-            lfin = ldebut + self.lenkernelpool
+        for d in range(image.shape[2]):
 
-            for c in range(output.shape[1]):
-                cdebut = c * self.poolstride
-                cfin = cdebut + self.lenkernelpool
+            for l in range(output.shape[0]):
+                ldebut = l * self.poolstride
+                lfin = ldebut + self.lenkernelpool
 
-                output[l][c] += np.average(image[ldebut:lfin, cdebut:cfin])
+                for c in range(output.shape[1]):
+                    cdebut = c * self.poolstride
+                    cfin = cdebut + self.lenkernelpool
+
+                    output[l, c, d] += np.average(image[ldebut:lfin, cdebut:cfin, d])
 
         return output
 
@@ -304,7 +306,7 @@ class CNN:
 
         zsconv = []
 
-        for c in range(self.nbconv):
+        for c in range(self.nbconv): #problema en la boucle siguiente el output tiene mas de 1 dim[2] y hay que hacer que sea 1 de dim
             kernel = self.parameters["cl" + str(c)]
             conv = self.convolution2d(self.paddington(outlast, self.padding), kernel)
             pool = self.pooling(conv)
@@ -340,17 +342,19 @@ class CNN:
 
         long = (self.lenkernelpool * self.lenkernelpool)
 
-        for l in range(0, s[0]):
+        for d in range(dimsortie[2]):
 
-            ldebut = l * self.poolstride
-            lfin = ldebut + self.lenkernelpool
+            for l in range(s[0]):
 
-            for c in range(0, s[1]):
+                ldebut = l * self.poolstride
+                lfin = ldebut + self.lenkernelpool
 
-                cdebut = c * self.poolstride
-                cfin = cdebut + self.lenkernelpool
+                for c in range(s[1]):
 
-                out[ldebut:lfin, cdebut:cfin] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[l,c] / long)
+                    cdebut = c * self.poolstride
+                    cfin = cdebut + self.lenkernelpool
+
+                    out[ldebut:lfin, cdebut:cfin, d] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[l,c,d] / long)
 
         return out
 
@@ -390,11 +394,11 @@ class CNN:
 
             s = self.convdims[-1]
 
-            delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1])
+            delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1], s[2])
 
             #hacer average pooling pero al reves
 
-            delta = self.backpool(delta, (s[0], s[0])).reshape(s[0],s[0], -1)
+            delta = self.backpool(delta, (s[0], s[0], s[2]))
 
             dc[-1] += self.convolution2d(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2])
 
@@ -565,7 +569,7 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(784,"input"), (1, "relu")]
+convlay = [(784,"input"), (3, "relu")]
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
