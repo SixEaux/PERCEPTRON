@@ -43,7 +43,7 @@ class Parametros:
     color: bool = False
 
     #CNN
-    kernel: int = 3
+    kernel: int = 4
     kernelpool: int = 5
     padding: int = 1
     stride: int = 1
@@ -144,7 +144,7 @@ class CNN:
             self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][1], infoconvlay[c][0]) #add at the end the number of filters
 
         if self.nbconv > 0:
-            infolay[0] = (infolay[0][0]*infolay[0][0]*param["cl" + str(self.nbconv - 1)].shape[2], "input")
+            infolay[0] = (infolay[0][0]*infolay[0][0]*self.convdims[self.nbconv-1][2], "input")
 
         for l in range(1, len(infolay)):
             param["w" + str(l-1)] = np.random.uniform(-1, 1, (infolay[l][0], infolay[l-1][0])) #nbneurons * nbinput
@@ -237,24 +237,26 @@ class CNN:
             raise "You forgot to specify the activation function"
 
     def convolution2d(self, image, kernel, dimout=None): #dimout est calculer avant ou
-        lenkernel = kernel.shape[0]
+        lenkernel = kernel.shape
 
-        if not dimout:
-            dimout = (int((image.shape[0] + 2 * self.padding - lenkernel) / self.stride) + 1, int((image.shape[1] + 2 * self.padding - lenkernel) / self.stride) + 1, int((image.shape[2] + 2 * self.padding - lenkernel) / self.stride) + 1)
+        if dimout is None:
+            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1, int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[2])
 
         output = np.zeros(dimout)
 
         for d in range(output.shape[2]):
 
             for l in range(output.shape[0]):
+
                 ldebut = l * self.stride
-                lfin = ldebut + lenkernel
+                lfin = ldebut + lenkernel[0]
 
                 for c in range(output.shape[1]):
-                    cdebut = c * self.stride
-                    cfin = cdebut + lenkernel
 
-                    output[l][c][d] += np.sum(image[ldebut:lfin, cdebut:cfin] * kernel[:,:,d])
+                    cdebut = c * self.stride
+                    cfin = cdebut + lenkernel[1]
+
+                    output[l, c, d] += np.sum(image[ldebut:lfin, cdebut:cfin] * kernel[:,:, d])
 
         return output
 
@@ -275,7 +277,7 @@ class CNN:
 
         return output
 
-    def convolutionrapide(self, image, kernel, mode="same"): #faire convolution #ou convolve(kernel,image)
+    def convolutionrapide(self, image, kernel, mode="full"): #faire convolution #ou convolve(kernel,image)
         return np.array(correlate2d(image, kernel, mode=mode))
 
     def maxpoolingrapide(self, image):
@@ -392,7 +394,7 @@ class CNN:
 
             #hacer average pooling pero al reves
 
-            delta = self.backpool(delta, (s[0], s[0]))
+            delta = self.backpool(delta, (s[0], s[0])).reshape(s[0],s[0], -1)
 
             dc[-1] += self.convolution2d(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2])
 
@@ -567,11 +569,10 @@ convlay = [(784,"input"), (1, "relu")]
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=1)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0)
 
 g = CNN(parametros)
 
-forw = g.forwardprop(g.pix[10].reshape(28,28,-1))
-print(g.vales[10])
+g.train()
 
-dw, db, loss, dc = g.backprop(g.vecteur(g.vales[10]), forw[1], forw[2], forw[3], forw[4], 1)
+print(g.tauxlent())
