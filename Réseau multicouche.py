@@ -21,7 +21,7 @@ from Auxiliares import takeinputs, Draw
 # - Añadir que learning rate cambie con variacion de lost function
 
 
-np.seterr(all='raise')
+# np.seterr(all='raise')
 
 @dataclass
 class Parametros:
@@ -43,11 +43,13 @@ class Parametros:
     color: bool = False
 
     #CNN
-    kernel: int = 5
-    kernelpool: int = 3
+    kernel: int = 2
+    kernelpool: int = 2
     padding: int = 1
     stride: int = 1
-    poolstride: int = 5
+    poolstride: int = 2
+
+    convrapide: bool = True
 
 
 class CNN:
@@ -68,6 +70,8 @@ class CNN:
         self.stride = par.stride #de cuanto se mueve el filtro
         self.poolstride = par.poolstride
         self.lenkernelpool = par.kernelpool
+
+        self.convolution = self.convolution2d if not par.convrapide else self.convolutionrapide
 
         self.convdims = [] #dimensiones salida convolution
 
@@ -279,8 +283,18 @@ class CNN:
 
         return output
 
-    def convolutionrapide(self, image, kernel, mode="full"): #faire convolution #ou convolve(kernel,image)
-        return np.array(correlate2d(image, kernel, mode=mode))
+    def convolutionrapide(self, image, kernel, dimout=None):  # faire convolution avec librairie
+        lenkernel = kernel.shape
+
+        if dimout is None:
+            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1, int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[2])
+
+        output = np.zeros(dimout)
+
+        for d in range(lenkernel[2]):
+            output[:, :, d] += correlate2d(image, kernel[:, :, d], "valid")
+
+        return output
 
     def maxpoolingrapide(self, image):
         return block_reduce(image, (self.lenkernel, self.lenkernel), np.max)
@@ -308,7 +322,7 @@ class CNN:
 
         for c in range(self.nbconv): #problema en la boucle siguiente el output tiene mas de 1 dim[2] y hay que hacer que sea 1 de dim
             kernel = self.parameters["cl" + str(c)]
-            conv = self.convolution2d(self.paddington(outlast, self.padding), kernel)
+            conv = self.convolution(self.paddington(outlast, self.padding), kernel)
             pool = self.pooling(conv)
 
             if c == self.nbconv - 1:
@@ -400,15 +414,15 @@ class CNN:
 
             delta = self.backpool(delta, (s[0], s[0], s[2]))
 
-            dc[-1] += self.convolution2d(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2])
+            dc[-1] += self.convolution(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2])
 
             for c in range(self.nbconv - 2, -1, -1):
                 filtre = self.parameters["cl" + str(c)]
                 diff = self.fctconv[1](zsconv[c])
 
-                delta = self.convolution2d(filtre, delta) * diff
+                delta = self.convolution(filtre, delta) * diff
 
-                dLdf = self.convolution2d(activationsconv[c-1], delta)
+                dLdf = self.convolution(activationsconv[c-1], delta)
 
                 dc[c] += dLdf
 
@@ -569,14 +583,16 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(784,"input"), (3, "relu")]
+convlay = [(784,"input"), (30, "relu")]
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
 
-g = CNN(parametros)
+# g = CNN(parametros)
+#
+# g.train()
+#
+# print(g.tauxlent())
 
-g.train()
 
-print(g.tauxlent())
