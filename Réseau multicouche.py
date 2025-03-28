@@ -487,6 +487,9 @@ class CNN:
 
                     self.actualiseweights(dw, db, 1, dc)
 
+                    if p % 1000 == 0:
+                        print("Percentage: " + str(p*100/len(self.pix)))
+
         return
 
     def trainbatch(self):
@@ -583,16 +586,16 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(784,"input"), (30, "relu")]
+convlay = [(784,"input"), (10, "relu")]
 
-lay = [(64, "sigmoid"), (10, "softmax")]
+lay = [(128, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=True)
 
-# g = CNN(parametros)
-#
-# g.train()
-#
-# print(g.tauxlent())
+g = CNN(parametros)
+
+g.train()
+
+print(g.tauxlent())
 
 
