@@ -479,7 +479,7 @@ class CNN:
 
                     self.actualiseweights(dw, db, 1, dc)
 
-                    if p % 1000 == 0:
+                    if p % 10000 == 0:
                         print("Percentage: " + str(p*100/len(self.pix)))
 
         return
