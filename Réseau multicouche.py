@@ -34,7 +34,7 @@ class Parametros:
     infoconvlay: list
 
     iterations: int = 1
-    coefcv: float = 0.1
+    coefcv: float = 0.01
     batch: int = 1
     errorfunc: str = "CEL"
 
@@ -57,7 +57,6 @@ class CNN:
 
         self.iter = par.iterations  # nombre iteration entrainement
         self.nblay = len(par.infolay) # nombre de layers
-        self.infoconvlay = par.infoconvlay # numero layers convolution
         self.lenbatch = par.batch
 
         # INITIALISATION VARIABLES
@@ -73,7 +72,7 @@ class CNN:
 
         self.convolution = self.convolution2d if not par.convrapide else self.convolutionrapide
 
-        self.convdims = [] #dimensiones salida convolution
+        self.convdims = [] #dimensiones salida convolution (dimconv, dimpool, nbfiltresentree, nbfiltressortie)
 
         d = 28
         for i in range(self.nbconv):
@@ -128,7 +127,7 @@ class CNN:
                 else:
                     datamod = [pix[:,a].reshape(28,28) / 255 for a in range(pix.shape[1])]
 
-        else:
+        else: #si pas convolution direct avec numpy
             if color:
                 pix = self.converttogreyscale(pix)
 
@@ -143,16 +142,16 @@ class CNN:
         param = {}
 
         for c in range(1, len(infoconvlay)):
-            param["cl" + str(c-1)] = np.random.uniform(-1, 1, size=(self.lenkernel, self.lenkernel, infoconvlay[c][0]))
+            param["cl" + str(c-1)] = np.random.uniform(-1, 1, size=(self.lenkernel, self.lenkernel, infoconvlay[c-1][0], infoconvlay[c][0])) #(hauteur filtre, largeur filtre, nb canaux entree, nb canaux sortie)
             param["fctcl" + str(c-1)] = self.getfct(infoconvlay[c][1])
-            self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][1], infoconvlay[c][0]) #add at the end the number of filters
+            self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][1], infoconvlay[c-1][0], infoconvlay[c][0]) #antiguas dim con: añadir el numero filtros entrada y salida
 
         if self.nbconv > 0:
-            infolay[0] = (infolay[0][0]*infolay[0][0]*self.convdims[self.nbconv-1][2], "input")
+            infolay[0] = (infolay[0][0]*infolay[0][0]*self.convdims[self.nbconv-1][3], "input") #ajustar para que primer peso tenga buenas dim
 
         for l in range(1, len(infolay)):
             param["w" + str(l-1)] = np.random.uniform(-1, 1, (infolay[l][0], infolay[l-1][0])) #nbneurons * nbinput
-            param["b" + str(l-1)] = np.random.rand(infolay[l][0], 1) - 0.5 #np.zeros((lst[l][0], 1))
+            param["b" + str(l-1)] = np.random.rand(infolay[l][0], 1) - 0.5
             param["fct" + str(l-1)] = self.getfct(infolay[l][1])[0]
             param["diff" + str(l-1)] = self.getfct(infolay[l][1])[1]
 
@@ -241,26 +240,26 @@ class CNN:
             raise "You forgot to specify the activation function"
 
     def convolution2d(self, image, kernel, dimout=None): #dimout est calculer avant ou
-        lenkernel = kernel.shape
+        lenkernel = kernel.shape #(largeur,hauteur, canaux entree, canaux sortie)
 
-        if dimout is None:
-            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1, int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[2])
+        if dimout is None: #calcul dim sortie
+            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1, int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[3])
 
         output = np.zeros(dimout)
 
-        for d in range(output.shape[2]):
+        for d in range(output.shape[2]): #parcours filtres
 
-            for l in range(output.shape[0]):
+            for h in range(output.shape[0]): #parcours hauteur
 
-                ldebut = l * self.stride
-                lfin = ldebut + lenkernel[0]
+                hdebut = h * self.stride
+                hfin = hdebut + lenkernel[0]
 
-                for c in range(output.shape[1]):
+                for l in range(output.shape[1]): #parcours largeur
 
-                    cdebut = c * self.stride
-                    cfin = cdebut + lenkernel[1]
+                    ldebut = l * self.stride
+                    lfin = ldebut + lenkernel[1]
 
-                    output[l, c, d] += np.sum(image[ldebut:lfin, cdebut:cfin] * kernel[:,:, d])
+                    output[h, l, d] += np.sum(image[hdebut:hfin, ldebut:lfin, :] * kernel[:,:, :, d]) #multiplie et somme sur canaux entree pour obtenir 2d
 
         return output
 
@@ -269,17 +268,17 @@ class CNN:
         dimout = (int((image.shape[0] - self.lenkernelpool) / self.poolstride) + 1,int((image.shape[1] - self.lenkernelpool) / self.poolstride) + 1, image.shape[2])
         output = np.zeros(dimout)
 
-        for d in range(image.shape[2]):
+        for d in range(image.shape[2]):#parcours canaux
 
-            for l in range(output.shape[0]):
-                ldebut = l * self.poolstride
-                lfin = ldebut + self.lenkernelpool
+            for h in range(output.shape[0]): #parcours hauteur
+                hdebut = h * self.poolstride
+                hfin = hdebut + self.lenkernelpool
 
-                for c in range(output.shape[1]):
-                    cdebut = c * self.poolstride
-                    cfin = cdebut + self.lenkernelpool
+                for l in range(output.shape[1]): #parcours largeur
+                    ldebut = l * self.poolstride
+                    lfin = ldebut + self.lenkernelpool
 
-                    output[l, c, d] += np.average(image[ldebut:lfin, cdebut:cfin, d])
+                    output[h, l, d] += np.average(image[hdebut:hfin, ldebut:lfin, d]) #media feature map para poner en output
 
         return output
 
@@ -309,26 +308,25 @@ class CNN:
         outlast = input
 
         if self.nbconv > 0:
-            activationsconv = [input] #garder pour backprop des convolution
-
-            activationslay = [] #garder pour la backprop les variables des layers
+            activationsconv = [input] #garder activees pour backprop des convolution
+            activationslay = [] #garder activees pour la backprop les variables des layers
         else:
             activationsconv = []
             activationslay = [input]
 
+        #ici garder seulement avant activation
         zslay = []
-
         zsconv = []
 
-        for c in range(self.nbconv): #problema en la boucle siguiente el output tiene mas de 1 dim[2] y hay que hacer que sea 1 de dim
+        for c in range(self.nbconv): #parcours layers convolution
             kernel = self.parameters["cl" + str(c)]
             conv = self.convolution(self.paddington(outlast, self.padding), kernel)
             pool = self.pooling(conv)
 
-            if c == self.nbconv - 1:
+            if c == self.nbconv - 1: #si arrives a la fin flattening layer
                 outlast = self.flatening(pool)
                 zsconv.append(outlast)
-            else:
+            else: #sinon continue
                 outlast = pool
                 zsconv.append(outlast)
 
@@ -350,47 +348,46 @@ class CNN:
 
         return outlast, zslay, zsconv, activationslay, activationsconv #out last c'est la prediction et vieux c'est pour backprop
 
-    def backpool(self, dapres, dimsortie):
+    def backpool(self, dapres, dimsortie): #pooling pero al reves, recuperar algo de mismas dim que entrada en pooling
         s = dapres.shape
         out = np.zeros(dimsortie)
 
         long = (self.lenkernelpool * self.lenkernelpool)
 
-        for d in range(dimsortie[2]):
+        for d in range(dimsortie[2]): #parcours canaux
 
-            for l in range(s[0]):
+            for h in range(s[0]): #parcours hauteur
 
-                ldebut = l * self.poolstride
-                lfin = ldebut + self.lenkernelpool
+                hdebut = h * self.poolstride
+                hfin = hdebut + self.lenkernelpool
 
-                for c in range(s[1]):
+                for l in range(s[1]): #parcours largeur
 
-                    cdebut = c * self.poolstride
-                    cfin = cdebut + self.lenkernelpool
+                    ldebut = l * self.poolstride
+                    lfin = ldebut + self.lenkernelpool
 
-                    out[ldebut:lfin, cdebut:cfin, d] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[l,c,d] / long)
-
+                    out[hdebut:hfin, ldebut:lfin, d] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[h,l,d] / long) #en toda la region ponemos la media
         return out
 
     def backprop(self, expected, zslay, zsconv, activationslay, activationsconv, nbinp):
-        C = self.errorfunc[0](activationslay[-1], expected, nbinp)
+        C = self.errorfunc[0](activationslay[-1], expected, nbinp) #Calcular error
 
+        #crear los outputs
         dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
         db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
-        dc = [np.zeros((self.lenkernel, self.lenkernel, self.convdims[i][2])) for i in range(self.nbconv)]
+        dc = [np.zeros((self.lenkernel, self.lenkernel, self.convdims[i][2], self.convdims[i][3])) for i in range(self.nbconv)]
 
-        delta = self.errorfunc[1](activationslay[-1], expected, nbinp)
+        delta = self.errorfunc[1](activationslay[-1], expected, nbinp) #error output layer
 
-        dw[-1] += np.dot(delta, activationslay[-2].T)
-        db[-1] += np.sum(delta, axis=1, keepdims=True)
+        dw[-1] += np.dot(delta, activationslay[-2].T) #dC/dpesos antes de salida
+        db[-1] += np.sum(delta, axis=1, keepdims=True) #dC/dbias antes de salida
 
-        for l in range(self.nblay - 2, -1, -1):
-            # probleme avec les indices corriger cela
+        for l in range(self.nblay - 2, -1, -1): #parcours layers à l'envers
 
             w = self.parameters["w" + str(l + 1)]
             dif = self.parameters["diff" + str(l)](zslay[l])
 
-            delta = np.dot(w.T, delta) * dif
+            delta = np.dot(w.T, delta) * dif #update error con error siguiente layer
 
             dwl = np.dot(delta, activationslay[l].T)
             dbl = np.sum(delta, axis=1, keepdims=True)
@@ -398,29 +395,24 @@ class CNN:
             dw[l] += dwl
             db[l] += dbl
 
-
-        # Cambiar desde aqui
         if self.nbconv>0:
             # Calcular ultimo delta para el conv layer
-
             ultimoweight = self.parameters["w0"]
             ultimadif = self.fctconv[1](zsconv[-1])
 
-            s = self.convdims[-1]
+            s = self.convdims[-1] #dimensiones ultimo conv
 
-            delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1], s[2])
+            delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1], s[3]) #calcular ultimo error de nn
 
-            #hacer average pooling pero al reves
+            delta = self.backpool(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
 
-            delta = self.backpool(delta, (s[0], s[0], s[2]))
-
-            dc[-1] += self.convolution(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2])
+            dc[-1] += self.convolution(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2], s[3])
 
             for c in range(self.nbconv - 2, -1, -1):
                 filtre = self.parameters["cl" + str(c)]
                 diff = self.fctconv[1](zsconv[c])
 
-                delta = self.convolution(filtre, delta) * diff
+                delta = self.convolution(delta, filtre) * diff
 
                 dLdf = self.convolution(activationsconv[c-1], delta)
 
@@ -481,7 +473,7 @@ class CNN:
         else:
             for _ in range(self.iter):
                 for p in range(len(self.pix)):
-                    forw = self.forwardprop(self.pix[p])
+                    forw = self.forwardprop(self.pix[p].reshape(28,28,-1))
 
                     dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], forw[3], forw[4], 1)
 
@@ -533,7 +525,7 @@ class CNN:
         else:
             nbbien = 0
             for image in range(len(self.qcmpix)):
-                forw = self.forwardprop(self.qcmpix[image])
+                forw = self.forwardprop(self.qcmpix[image].reshape(28,28,-1))
 
                 observed = self.choix(forw[0])
 
@@ -586,15 +578,15 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(784,"input"), (10, "relu")]
+convlay = [(1, "input"), (3, "relu")]
 
-lay = [(128, "sigmoid"), (10, "softmax")]
+lay = [(64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=True)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
 
 g = CNN(parametros)
 
-g.train()
+# g.train()
 
 print(g.tauxlent())
 
