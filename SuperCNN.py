@@ -576,18 +576,18 @@ class CNN:
         plt.show()
 
 
-val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
-
-convlay = [(1, "input"), (3, "relu")]
-
-lay = [(64, "sigmoid"), (10, "softmax")]
-
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
-
-g = CNN(parametros)
-
+# val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
+#
+# convlay = [(1, "input"), (3, "relu")]
+#
+# lay = [(64, "sigmoid"), (10, "softmax")]
+#
+# parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
+#
+# g = CNN(parametros)
+#
 # g.train()
-
-print(g.tauxlent())
+#
+# print(g.tauxlent())
 
 
