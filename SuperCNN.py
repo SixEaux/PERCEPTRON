@@ -3,8 +3,10 @@ import numpy as np
 from scipy.special import expit
 from dataclasses import dataclass
 
+
 #CONV
-from scipy.signal import correlate2d
+from scipy.signal import convolve
+from scipy.ndimage import uniform_filter
 from skimage.measure import block_reduce
 
 #PRINT
@@ -21,7 +23,7 @@ from Auxiliares import takeinputs, Draw
 # - Añadir que learning rate cambie con variacion de lost function
 
 
-# np.seterr(all='raise')
+np.seterr(all='raise')
 
 @dataclass
 class Parametros:
@@ -70,7 +72,7 @@ class CNN:
         self.poolstride = par.poolstride
         self.lenkernelpool = par.kernelpool
 
-        self.convolution = self.convolution2d if not par.convrapide else self.convolutionrapide
+        self.convolution = self.convolutionlente if not par.convrapide else self.convolutionnp
 
         self.convdims = [] #dimensiones salida convolution (dimconv, dimpool, nbfiltresentree, nbfiltressortie)
 
@@ -239,7 +241,7 @@ class CNN:
         else:
             raise "You forgot to specify the activation function"
 
-    def convolution2d(self, image, kernel, dimout=None): #dimout est calculer avant ou
+    def convolutionlente(self, image, kernel, dimout=None): #dimout est calculer avant ou
         lenkernel = kernel.shape #(largeur,hauteur, canaux entree, canaux sortie)
 
         if dimout is None: #calcul dim sortie
@@ -263,7 +265,7 @@ class CNN:
 
         return output
 
-    def pooling(self, image): #para poder utilizar np.max hace falta un mask para guardar de donde viene el max / si average no hace falta
+    def poolinglent(self, image): #para poder utilizar np.max hace falta un mask para guardar de donde viene el max / si average no hace falta
 
         dimout = (int((image.shape[0] - self.lenkernelpool) / self.poolstride) + 1,int((image.shape[1] - self.lenkernelpool) / self.poolstride) + 1, image.shape[2])
         output = np.zeros(dimout)
@@ -282,21 +284,43 @@ class CNN:
 
         return output
 
-    def convolutionrapide(self, image, kernel, dimout=None):  # faire convolution avec librairie
-        lenkernel = kernel.shape
+    def convolutionnp(self, image, kernel):  # faire convolution avec librairie
+        lenkernel = kernel.shape # H,L,Centree, Csortie
 
-        if dimout is None:
-            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1, int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[2])
+        mapa = np.lib.stride_tricks.sliding_window_view(image, (lenkernel[0], lenkernel[1], image.shape[2]))[::self.stride, ::self.stride]
 
-        output = np.zeros(dimout)
+        s = mapa.shape
 
-        for d in range(lenkernel[2]):
-            output[:, :, d] += correlate2d(image, kernel[:, :, d], "valid")
+        print("image", image.shape)
+        print("kernel", lenkernel)
+        print("mapa",s)
+
+        output = np.tensordot(mapa, kernel, axes=([2,3,4], [0,1,2]))
 
         return output
 
-    def maxpoolingrapide(self, image):
-        return block_reduce(image, (self.lenkernel, self.lenkernel), np.max)
+    def convolutionscp(self, image, kernel, dimout=None):
+
+        lenkernel = kernel.shape  # (largeur,hauteur, canaux entree, canaux sortie)
+
+        if dimout is None:  # calcul dim sortie
+            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1,
+                      int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[3])
+
+        output = np.zeros(dimout)
+
+        for d in range(lenkernel[3]):
+            a = np.array(convolve(image, kernel[:,:,:,d], mode="valid"))
+            t = a.shape
+            output[:,:,d] = a.reshape(t[0], t[1])
+
+        return output[::self.stride, ::self.stride]
+
+    def poolingscp(self, image):
+
+        output = block_reduce(image, (self.lenkernelpool, self.lenkernelpool, 1), func=np.mean)
+
+        return output[::self.poolstride, ::self.poolstride]
 
     def flatening(self, image):
         return image.reshape((-1,1))
@@ -321,7 +345,7 @@ class CNN:
         for c in range(self.nbconv): #parcours layers convolution
             kernel = self.parameters["cl" + str(c)]
             conv = self.convolution(self.paddington(outlast, self.padding), kernel)
-            pool = self.pooling(conv)
+            pool = self.poolinglent(conv)
 
             if c == self.nbconv - 1: #si arrives a la fin flattening layer
                 outlast = self.flatening(pool)
@@ -576,18 +600,19 @@ class CNN:
         plt.show()
 
 
-# val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
-#
-# convlay = [(1, "input"), (3, "relu")]
-#
-# lay = [(64, "sigmoid"), (10, "softmax")]
-#
-# parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
-#
-# g = CNN(parametros)
-#
-# g.train()
-#
-# print(g.tauxlent())
+val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
+
+convlay = [(1, "input"), (3, "relu")]
+
+lay = [(64, "sigmoid"), (10, "softmax")]
+
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=True)
+
+g = CNN(parametros)
+
+
+g.train()
+
+print(g.tauxlent())
 
 
