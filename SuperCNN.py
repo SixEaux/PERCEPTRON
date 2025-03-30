@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 #CONV
 from scipy.signal import convolve
-from scipy.ndimage import uniform_filter
 from skimage.measure import block_reduce
 
 #PRINT
@@ -72,7 +71,7 @@ class CNN:
         self.poolstride = par.poolstride
         self.lenkernelpool = par.kernelpool
 
-        self.convolution = self.convolutionlente if not par.convrapide else self.convolutionnp
+        self.convolution = self.convolutionlente if not par.convrapide else self.convolutionscp
 
         self.convdims = [] #dimensiones salida convolution (dimconv, dimpool, nbfiltresentree, nbfiltressortie)
 
@@ -600,19 +599,22 @@ class CNN:
         plt.show()
 
 
-val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
+# val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
+#
+# convlay = [(1, "input"), (3, "relu")]
+#
+# lay = [(64, "sigmoid"), (10, "softmax")]
+#
+# parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
+#
+# g = CNN(parametros)
+#
+# g.forwardprop(g.pix[10].reshape(28,28,-1))
 
-convlay = [(1, "input"), (3, "relu")]
 
-lay = [(64, "sigmoid"), (10, "softmax")]
+# g.train()
+#
+# print(g.tauxlent())
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=True)
-
-g = CNN(parametros)
-
-
-g.train()
-
-print(g.tauxlent())
 
 
