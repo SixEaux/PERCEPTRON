@@ -72,15 +72,17 @@ class CNN:
         self.lenkernelpool = par.kernelpool
 
         self.convolution = self.convolutionlente if not par.convrapide else self.convolutionscp
+        self.pooling = self.poolinglent if not par.convrapide else self.poolingskim
 
         self.convdims = [] #dimensiones salida convolution (dimconv, dimpool, nbfiltresentree, nbfiltressortie)
 
         d = 28
         for i in range(self.nbconv):
             dim = int(((d + 2 * self.padding - self.lenkernel) / self.stride) + 1) #dimension apres convolution
-            dimpool = int(((dim - self.lenkernelpool) / self.poolstride) + 1)  #dimension apres pooling layer
+            dimpool = int(((dim - self.lenkernelpool) / self.poolstride) + 1)  #dimension apres pooling layer si dimensions paires
+
             self.convdims.append((dim, dimpool))
-            d = dim
+            d = dimpool
 
         if self.nbconv > 0: #il faut ajuster input multilayer because it comes from convlayer
             par.infolay = [(self.convdims[-1][1], "input")] + par.infolay
@@ -267,6 +269,7 @@ class CNN:
     def poolinglent(self, image): #para poder utilizar np.max hace falta un mask para guardar de donde viene el max / si average no hace falta
 
         dimout = (int((image.shape[0] - self.lenkernelpool) / self.poolstride) + 1,int((image.shape[1] - self.lenkernelpool) / self.poolstride) + 1, image.shape[2])
+
         output = np.zeros(dimout)
 
         for d in range(image.shape[2]):#parcours canaux
@@ -315,11 +318,11 @@ class CNN:
 
         return output[::self.stride, ::self.stride]
 
-    def poolingscp(self, image):
+    def poolingskim(self, image):
 
-        output = block_reduce(image, (self.lenkernelpool, self.lenkernelpool, 1), func=np.mean)
+        output = np.array(block_reduce(image, (self.lenkernelpool, self.lenkernelpool, 1), func=np.mean))
 
-        return output[::self.poolstride, ::self.poolstride]
+        return output[::self.poolstride//2, ::self.poolstride//2]
 
     def flatening(self, image):
         return image.reshape((-1,1))
@@ -344,7 +347,7 @@ class CNN:
         for c in range(self.nbconv): #parcours layers convolution
             kernel = self.parameters["cl" + str(c)]
             conv = self.convolution(self.paddington(outlast, self.padding), kernel)
-            pool = self.poolinglent(conv)
+            pool = self.pooling(conv)
 
             if c == self.nbconv - 1: #si arrives a la fin flattening layer
                 outlast = self.flatening(pool)
@@ -373,6 +376,7 @@ class CNN:
 
     def backpool(self, dapres, dimsortie): #pooling pero al reves, recuperar algo de mismas dim que entrada en pooling
         s = dapres.shape
+
         out = np.zeros(dimsortie)
 
         long = (self.lenkernelpool * self.lenkernelpool)
@@ -599,22 +603,18 @@ class CNN:
         plt.show()
 
 
-# val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
-#
-# convlay = [(1, "input"), (3, "relu")]
-#
-# lay = [(64, "sigmoid"), (10, "softmax")]
-#
-# parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
-#
-# g = CNN(parametros)
-#
+val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
+
+convlay = [(1, "input"), (10, "relu")]
+
+lay = [(64, "sigmoid"), (10, "softmax")]
+
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
+
+g = CNN(parametros)
+
 # g.forwardprop(g.pix[10].reshape(28,28,-1))
 
+g.train()
 
-# g.train()
-#
-# print(g.tauxlent())
-
-
-
+print(g.tauxlent())
