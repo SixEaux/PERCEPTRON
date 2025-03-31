@@ -7,6 +7,7 @@ from dataclasses import dataclass
 #CONV
 from scipy.signal import convolve
 from skimage.measure import block_reduce
+from numpy.lib.stride_tricks import as_strided
 
 #PRINT
 from tabulate import tabulate
@@ -318,11 +319,21 @@ class CNN:
 
         return output[::self.stride, ::self.stride]
 
+    def poolingnp(self, image):
+        pass
+
     def poolingskim(self, image):
 
-        output = np.array(block_reduce(image, (self.lenkernelpool, self.lenkernelpool, 1), func=np.mean))
+        h, l, d = image.shape
 
-        return output[::self.poolstride//2, ::self.poolstride//2]
+        newh, newl = h - (h % self.lenkernelpool), l - (l % self.lenkernelpool)  # le cas ou pas pile
+
+        transformation = image[:newh, :newl, :]  # ca peut se faire aussi apres le pooling
+
+        output = np.array(block_reduce(transformation, (self.lenkernelpool, self.lenkernelpool, 1), func=np.mean))
+
+        return output[::self.poolstride//2,::self.poolstride//2]
+
 
     def flatening(self, image):
         return image.reshape((-1,1))
@@ -374,7 +385,7 @@ class CNN:
 
         return outlast, zslay, zsconv, activationslay, activationsconv #out last c'est la prediction et vieux c'est pour backprop
 
-    def backpool(self, dapres, dimsortie): #pooling pero al reves, recuperar algo de mismas dim que entrada en pooling
+    def backpoollent(self, dapres, dimsortie): #pooling pero al reves, recuperar algo de mismas dim que entrada en pooling
         s = dapres.shape
 
         out = np.zeros(dimsortie)
@@ -395,6 +406,12 @@ class CNN:
 
                     out[hdebut:hfin, ldebut:lfin, d] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[h,l,d] / long) #en toda la region ponemos la media
         return out
+
+    def backpoolnp(self, dapres):
+        return np.repeat(np.repeat(dapres, self.lenkernelpool, axis=0), self.lenkernelpool, axis=1)
+
+    def backpoolautre(self, dapres, dimsortie):
+        pass
 
     def backprop(self, expected, zslay, zsconv, activationslay, activationsconv, nbinp):
         C = self.errorfunc[0](activationslay[-1], expected, nbinp) #Calcular error
@@ -431,7 +448,7 @@ class CNN:
 
             delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1], s[3]) #calcular ultimo error de nn
 
-            delta = self.backpool(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
+            delta = self.backpoollent(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
 
             dc[-1] += self.convolution(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2], s[3])
 
@@ -609,7 +626,7 @@ convlay = [(1, "input"), (10, "relu")]
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=False)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=True)
 
 g = CNN(parametros)
 
