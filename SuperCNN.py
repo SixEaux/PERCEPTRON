@@ -38,7 +38,8 @@ class Parametros:
     infoconvlay: list
 
     iterations: int = 1
-    coefcv: float = 0.1
+    coefcv: float = 0.01
+    coefcvadaptatif: bool = True
     batch: int = 1
     errorfunc: str = "CEL"
 
@@ -54,6 +55,8 @@ class Parametros:
     poolstride: int = 2
 
     convrapide: bool = True
+    poolrapide: bool = True
+    backpoolrapide: bool = True
 
 
 class CNN:
@@ -65,6 +68,7 @@ class CNN:
 
         # INITIALISATION VARIABLES
         self.cvcoef = par.coefcv #learning rate
+        self.lradapt = par.coefcvadaptatif #adapte coefcv en fonction de la fonction de cout
 
         # POUR CNN
         self.nbconv = len(par.infoconvlay) - 1
@@ -75,8 +79,8 @@ class CNN:
         self.lenkernelpool = par.kernelpool
 
         self.convolution = self.convolutionlente if not par.convrapide else self.convolutionscp
-        self.pooling = self.poolinglent if not par.convrapide else self.poolingskim
-        self.backpool = self.backpoollent if not par.convrapide else self.backpoolnp
+        self.pooling = self.poolinglent if not par.poolrapide else self.poolingskim
+        self.backpool = self.backpoollent if not par.backpoolrapide else self.backpoolnp
 
         self.convdims = [] #dimensiones salida convolution (dimconv, dimpool, nbfiltresentree, nbfiltressortie)
 
@@ -477,7 +481,7 @@ class CNN:
 
             delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1], s[3]) #calcular ultimo error de nn
 
-            delta = self.backpoollent(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
+            delta = self.backpool(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
 
             dc[-1] += self.convolution(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2], s[3])
 
@@ -651,11 +655,11 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(1, "input"), (5, "relu")]
+convlay = [(1, "input"), (10, "relu")]
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, convrapide=False)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay)
 
 g = CNN(parametros)
 
