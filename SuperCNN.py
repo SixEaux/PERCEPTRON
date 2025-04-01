@@ -1,4 +1,6 @@
 #GENERAL
+import time
+
 import numpy as np
 from scipy.special import expit
 from dataclasses import dataclass
@@ -47,7 +49,7 @@ class Parametros:
     #CNN
     kernel: int = 2
     kernelpool: int = 2
-    padding: int = 1
+    padding: int = 0
     stride: int = 1
     poolstride: int = 2
 
@@ -308,8 +310,7 @@ class CNN:
         lenkernel = kernel.shape  # (largeur,hauteur, canaux entree, canaux sortie)
 
         if dimout is None:  # calcul dim sortie
-            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1,
-                      int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[3])
+            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1, int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[3])
 
         output = np.zeros(dimout)
 
@@ -333,7 +334,7 @@ class CNN:
 
         output = np.array(block_reduce(transformation, (self.lenkernelpool, self.lenkernelpool, 1), func=np.mean))
 
-        return output[::self.poolstride//2,::self.poolstride//2]
+        return output[::self.poolstride//2,::self.poolstride//2] #choisir seulement les bonnes strides
 
     def flatening(self, image):
         return image.reshape((-1,1))
@@ -476,7 +477,7 @@ class CNN:
 
             delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1], s[3]) #calcular ultimo error de nn
 
-            delta = self.backpool(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
+            delta = self.backpoollent(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
 
             dc[-1] += self.convolution(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2], s[3])
 
@@ -485,6 +486,8 @@ class CNN:
                 diff = self.fctconv[1](zsconv[c])
 
                 delta = self.convolution(delta, filtre) * diff
+
+                #ici il manque backpool
 
                 dLdf = self.convolution(activationsconv[c-1], delta)
 
@@ -499,7 +502,6 @@ class CNN:
 
         for c in range(self.nbconv):
             self.parameters["cl" + str(c)] -= self.cvcoef * dc[c] * (1/nbinput)
-
         return
 
     def choix(self, y):
@@ -647,19 +649,21 @@ class CNN:
         plt.title('Fonction de Erreur')
         plt.show()
 
+val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-# val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
-#
-# convlay = [(1, "input"), (10, "relu")]
-#
-# lay = [(64, "sigmoid"), (10, "softmax")]
-#
-# parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, padding=0, convrapide=True)
-#
-# g = CNN(parametros)
-#
-# # g.forwardprop(g.pix[10].reshape(28,28,-1))
-#
-# g.train()
-#
-# print(g.tauxlent())
+convlay = [(1, "input"), (5, "relu")]
+
+lay = [(64, "sigmoid"), (10, "softmax")]
+
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, convrapide=False)
+
+g = CNN(parametros)
+
+print("je commence a mentrainer")
+t = time.time()
+
+g.train()
+
+print("jai fini en :", time.time()-t)
+
+print(g.tauxlent())
