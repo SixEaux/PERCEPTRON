@@ -36,7 +36,7 @@ class Parametros:
     infoconvlay: list
 
     iterations: int = 1
-    coefcv: float = 0.01
+    coefcv: float = 0.1
     batch: int = 1
     errorfunc: str = "CEL"
 
@@ -74,6 +74,7 @@ class CNN:
 
         self.convolution = self.convolutionlente if not par.convrapide else self.convolutionscp
         self.pooling = self.poolinglent if not par.convrapide else self.poolingskim
+        self.backpool = self.backpoollent if not par.convrapide else self.backpoolnp
 
         self.convdims = [] #dimensiones salida convolution (dimconv, dimpool, nbfiltresentree, nbfiltressortie)
 
@@ -290,7 +291,7 @@ class CNN:
     def convolutionnp(self, image, kernel):  # faire convolution avec librairie
         lenkernel = kernel.shape # H,L,Centree, Csortie
 
-        mapa = np.lib.stride_tricks.sliding_window_view(image, (lenkernel[0], lenkernel[1], image.shape[2]))[::self.stride, ::self.stride]
+        mapa = np.lib.stride_tricks.sliding_window_view(image, (lenkernel[0], lenkernel[1], image.shape[2]))
 
         s = mapa.shape
 
@@ -298,7 +299,7 @@ class CNN:
         print("kernel", lenkernel)
         print("mapa",s)
 
-        output = np.tensordot(mapa, kernel, axes=([2,3,4], [0,1,2]))
+        output = np.tensordot(mapa, kernel, axes=([2,3], [0,1]))
 
         return output
 
@@ -333,7 +334,6 @@ class CNN:
         output = np.array(block_reduce(transformation, (self.lenkernelpool, self.lenkernelpool, 1), func=np.mean))
 
         return output[::self.poolstride//2,::self.poolstride//2]
-
 
     def flatening(self, image):
         return image.reshape((-1,1))
@@ -407,8 +407,36 @@ class CNN:
                     out[hdebut:hfin, ldebut:lfin, d] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[h,l,d] / long) #en toda la region ponemos la media
         return out
 
-    def backpoolnp(self, dapres):
-        return np.repeat(np.repeat(dapres, self.lenkernelpool, axis=0), self.lenkernelpool, axis=1)
+    def backpoolnp(self, dapres, dimsortie):
+
+        if dimsortie[0]%dapres.shape[0]==0:
+            output = np.zeros(dimsortie)
+
+            moyenne = dapres / (self.lenkernelpool * self.lenkernelpool)
+
+            for d in range(dapres.shape[2]):
+                output[:, :, d] = np.repeat(np.repeat(moyenne[:, :, d], self.lenkernelpool, axis=0), self.lenkernelpool, axis=1)
+
+            return output
+        else:
+            h, l, c = dimsortie
+
+            dif = h % dapres.shape[0], l % dapres.shape[1]
+
+            newh, newl = h - (dif[0]), l - (dif[1])
+
+            output = np.zeros((newh, newl, c))
+
+            moyenne = dapres / (self.lenkernelpool * self.lenkernelpool)
+
+            for d in range(dapres.shape[2]):
+                output[:, :, d] = np.repeat(np.repeat(moyenne[:, :, d], self.lenkernelpool, axis=0), self.lenkernelpool, axis=1)
+
+            vraiout = np.zeros(dimsortie)
+
+            vraiout[:newh, :newl, :] = output
+
+            return vraiout
 
     def backpoolautre(self, dapres, dimsortie):
         pass
@@ -448,7 +476,7 @@ class CNN:
 
             delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1], s[3]) #calcular ultimo error de nn
 
-            delta = self.backpoollent(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
+            delta = self.backpool(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
 
             dc[-1] += self.convolution(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2], s[3])
 
