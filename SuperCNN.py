@@ -408,20 +408,20 @@ class CNN:
         return out
 
     def backpoolnp(self, dapres, dimsortie):
-
-        if dimsortie[0]%dapres.shape[0]==0:
+        if dimsortie[0] % self.lenkernelpool == 0:
             output = np.zeros(dimsortie)
 
             moyenne = dapres / (self.lenkernelpool * self.lenkernelpool)
 
             for d in range(dapres.shape[2]):
-                output[:, :, d] = np.repeat(np.repeat(moyenne[:, :, d], self.lenkernelpool, axis=0), self.lenkernelpool, axis=1)
+                output[:, :, d] = np.repeat(np.repeat(moyenne[:, :, d], self.lenkernelpool, axis=0), self.lenkernelpool,
+                                            axis=1)
 
             return output
         else:
             h, l, c = dimsortie
 
-            dif = h % dapres.shape[0], l % dapres.shape[1]
+            dif = h % self.lenkernelpool, l % self.lenkernelpool
 
             newh, newl = h - (dif[0]), l - (dif[1])
 
