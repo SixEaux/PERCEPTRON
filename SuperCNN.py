@@ -145,7 +145,7 @@ class CNN:
         param = {}
 
         for c in range(1, len(infoconvlay)):
-            param["cl" + str(c-1)] = np.random.uniform(-1, 1, size=(infoconvlay[c][0], infoconvlay[c-1][0], self.lenkernel, self.lenkernel)) #TODO: (nb canaux sortie, nb canaux entree, hauteur filtre, largeur filtre)
+            param["cl" + str(c-1)] = np.random.uniform(-1, 1, size=(infoconvlay[c][0], infoconvlay[c-1][0], self.lenkernel, self.lenkernel)) #(nb canaux sortie, nb canaux entree, hauteur filtre, largeur filtre)
             param["fctcl" + str(c-1)] = self.getfct(infoconvlay[c][1])
             self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][1], infoconvlay[c-1][0], infoconvlay[c][0]) #añadir el numero filtros entrada y salida
 
@@ -243,7 +243,7 @@ class CNN:
             raise "You forgot to specify the activation function"
 
 
-#Todo: NO USAR HASTA SIGUIENTE LINEA__________________________________________________________________________________________________________________
+#NO USAR HASTA SIGUIENTE LINEA__________________________________________________________________________________________________________________
 
     def convolutionlente(self, image, kernel, dimout=None): #dimout est calculer avant ou
         lenkernel = kernel.shape #(largeur,hauteur, canaux entree, canaux sortie)
@@ -306,7 +306,7 @@ class CNN:
 
         return output
 
-# Todo: SIGUIENTE LINEA________________________________________________________________________________________________________________________________
+#SIGUIENTE LINEA________________________________________________________________________________________________________________________________
 
     def convolutionscp(self, image, kernel, dimout=None):
 
@@ -397,7 +397,7 @@ class CNN:
 
         return outlast, zslay, zsconv, activationslay, activationsconv #out last c'est la prediction et vieux c'est pour backprop
 
-# Todo: NO USAR HASTA SIGUIENTE LINEA__________________________________________________________________________________________________________________
+# NO USAR HASTA SIGUIENTE LINEA__________________________________________________________________________________________________________________
 
     def backpoollent(self, dapres, dimsortie): #pooling pero al reves, recuperar algo de mismas dim que entrada en pooling
         s = dapres.shape
@@ -421,7 +421,7 @@ class CNN:
                     out[hdebut:hfin, ldebut:lfin, d] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[h,l,d] / long) #en toda la region ponemos la media
         return out
 
-# Todo: SIGUIENTE LINEA________________________________________________________________________________________________________________________________
+# SIGUIENTE LINEA________________________________________________________________________________________________________________________________
 
     def backpoolnp(self, dapres, dimsortie):
         if dimsortie[0] % self.lenkernelpool == 0: #si pile
