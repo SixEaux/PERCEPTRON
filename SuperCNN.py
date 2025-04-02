@@ -508,7 +508,7 @@ class CNN:
                     self.actualiseweights(dw, db, 1, dc, dcb)
 
                     if (p + self.iter*i) % 10000 == 0:
-                        print("Percentage: " + str((p+i*len(self.pix))*100/(len(self.pix)*self.iter)))
+                        print("Percentage: " + str(np.round((p+i*len(self.pix))*100/(len(self.pix)*self.iter))))
 
         return
 
@@ -605,7 +605,7 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(1, "input"), (10, "relu")] #(32, "relu"), (64, "relu"), (128, "relu")
+convlay = [(1, "input"), (10, "relu"), (15, "relu")] #(32, "relu"), (64, "relu"), (128, "relu")
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
