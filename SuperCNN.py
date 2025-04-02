@@ -36,7 +36,7 @@ class Parametros:
     infoconvlay: list
 
     iterations: int = 1
-    coefcv: float = 0.001
+    coefcv: float = 0.01
     coefcvadaptatif: bool = False
     batch: int = 1
     errorfunc: str = "CEL"
@@ -46,7 +46,7 @@ class Parametros:
     color: bool = False
 
     #CNN
-    kernel: int = 3
+    kernel: int = 2
     kernelpool: int = 2
     padding: int = 0
     stride: int = 1
@@ -143,7 +143,7 @@ class CNN:
 
         for c in range(1, len(infoconvlay)):
             param["cl" + str(c-1)] = np.random.uniform(-1, 1, size= (infoconvlay[c][0], infoconvlay[c-1][0], self.lenkernel, self.lenkernel)) # kernel: (nb canaux sortie, nb canaux entree, hauteur filtre, largeur filtre)
-            param["cb" + str(c-1)] = np.random.uniform(-1, 1, size= (infoconvlay[c][0], self.convdims[c-1][0], self.convdims[c-1][0])) # biais: canaux sortie, hauteur output, largeur output
+            param["cb" + str(c-1)] = np.zeros((infoconvlay[c][0], self.convdims[c-1][0], self.convdims[c-1][0])) # biais: canaux sortie, hauteur output, largeur output
             param["fctcl" + str(c-1)] = self.getfct(infoconvlay[c][1])
             self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][1], infoconvlay[c-1][0], infoconvlay[c][0]) #añadir el numero filtros entrada y salida
 
@@ -152,7 +152,7 @@ class CNN:
 
         for l in range(1, len(infolay)):
             param["w" + str(l-1)] = np.random.uniform(-1, 1, (infolay[l][0], infolay[l-1][0])) #nbneurons * nbinput
-            param["b" + str(l-1)] = np.random.rand(infolay[l][0], 1) - 0.5
+            param["b" + str(l-1)] = np.zeros((infolay[l][0], 1))
             param["fct" + str(l-1)] = self.getfct(infolay[l][1])[0]
             param["diff" + str(l-1)] = self.getfct(infolay[l][1])[1]
 
@@ -603,21 +603,21 @@ class CNN:
         plt.title('Fonction de Erreur')
         plt.show()
 
-# val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
-#
-# convlay = [(1, "input"), (10, "relu")] #(32, "relu"), (64, "relu"), (128, "relu")
-#
-# lay = [(64, "sigmoid"), (10, "softmax")]
-#
-# parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, iterations=1)
-#
-# g = CNN(parametros)
-#
-# print("je commence a mentrainer")
-# t = time.time()
-#
-# g.train()
-#
-# print("jai fini en :", time.time()-t)
-#
-# print("taux de reussite", g.tauxlent())
+val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
+
+convlay = [(1, "input"), (10, "relu")] #(32, "relu"), (64, "relu"), (128, "relu")
+
+lay = [(64, "sigmoid"), (10, "softmax")]
+
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, iterations=1)
+
+g = CNN(parametros)
+
+print("je commence a mentrainer")
+t = time.time()
+
+g.train()
+
+print("jai fini en :", time.time()-t)
+
+print("taux de reussite", g.tauxlent())
