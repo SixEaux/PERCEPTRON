@@ -7,7 +7,8 @@ from dataclasses import dataclass
 
 
 #CONV
-from scipy.signal import convolve
+from scipy.signal import correlate2d
+from scipy.signal import convolve2d
 from skimage.measure import block_reduce
 from numpy.lib.stride_tricks import as_strided
 
@@ -37,9 +38,9 @@ class Parametros:
     infolay: list
     infoconvlay: list
 
-    iterations: int = 1
+    iterations: int = 5
     coefcv: float = 0.01
-    coefcvadaptatif: bool = True
+    coefcvadaptatif: bool = False
     batch: int = 1
     errorfunc: str = "CEL"
 
@@ -53,11 +54,6 @@ class Parametros:
     padding: int = 0
     stride: int = 1
     poolstride: int = 2
-
-    convrapide: bool = True
-    poolrapide: bool = True
-    backpoolrapide: bool = True
-
 
 class CNN:
     def __init__(self, par = Parametros):
@@ -77,10 +73,6 @@ class CNN:
         self.stride = par.stride #de cuanto se mueve el filtro
         self.poolstride = par.poolstride
         self.lenkernelpool = par.kernelpool
-
-        self.convolution = self.convolutionlente if not par.convrapide else self.convolutionscp
-        self.pooling = self.poolinglent if not par.poolrapide else self.poolingskim
-        self.backpool = self.backpoollent if not par.backpoolrapide else self.backpoolnp
 
         self.convdims = [] #dimensiones salida convolution (dimconv, dimpool, nbfiltresentree, nbfiltressortie)
 
@@ -153,9 +145,9 @@ class CNN:
         param = {}
 
         for c in range(1, len(infoconvlay)):
-            param["cl" + str(c-1)] = np.random.uniform(-1, 1, size=(self.lenkernel, self.lenkernel, infoconvlay[c-1][0], infoconvlay[c][0])) #(hauteur filtre, largeur filtre, nb canaux entree, nb canaux sortie)
+            param["cl" + str(c-1)] = np.random.uniform(-1, 1, size=(infoconvlay[c][0], infoconvlay[c-1][0], self.lenkernel, self.lenkernel)) #TODO: (nb canaux sortie, nb canaux entree, hauteur filtre, largeur filtre)
             param["fctcl" + str(c-1)] = self.getfct(infoconvlay[c][1])
-            self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][1], infoconvlay[c-1][0], infoconvlay[c][0]) #antiguas dim con: añadir el numero filtros entrada y salida
+            self.convdims[c-1] = (self.convdims[c-1][0], self.convdims[c-1][1], infoconvlay[c-1][0], infoconvlay[c][0]) #añadir el numero filtros entrada y salida
 
         if self.nbconv > 0:
             infolay[0] = (infolay[0][0]*infolay[0][0]*self.convdims[self.nbconv-1][3], "input") #ajustar para que primer peso tenga buenas dim
@@ -250,6 +242,9 @@ class CNN:
         else:
             raise "You forgot to specify the activation function"
 
+
+#Todo: NO USAR HASTA SIGUIENTE LINEA__________________________________________________________________________________________________________________
+
     def convolutionlente(self, image, kernel, dimout=None): #dimout est calculer avant ou
         lenkernel = kernel.shape #(largeur,hauteur, canaux entree, canaux sortie)
 
@@ -258,19 +253,21 @@ class CNN:
 
         output = np.zeros(dimout)
 
-        for d in range(output.shape[2]): #parcours filtres
+        for d in range(output.shape[0]): #parcours filtres
 
-            for h in range(output.shape[0]): #parcours hauteur
+            for ce in range(output.shape[1]): #parcours canaux entree
 
-                hdebut = h * self.stride
-                hfin = hdebut + lenkernel[0]
+                for h in range(output.shape[0]): #parcours hauteur
 
-                for l in range(output.shape[1]): #parcours largeur
+                    hdebut = h * self.stride
+                    hfin = hdebut + lenkernel[0]
 
-                    ldebut = l * self.stride
-                    lfin = ldebut + lenkernel[1]
+                    for l in range(output.shape[1]): #parcours largeur
 
-                    output[h, l, d] += np.sum(image[hdebut:hfin, ldebut:lfin, :] * kernel[:,:, :, d]) #multiplie et somme sur canaux entree pour obtenir 2d
+                        ldebut = l * self.stride
+                        lfin = ldebut + lenkernel[1]
+
+                        output[h, l, d] += np.sum(image[hdebut:hfin, ldebut:lfin, :] * kernel[:,:, :, d]) #multiplie et somme sur canaux entree pour obtenir 2d
 
         return output
 
@@ -309,52 +306,57 @@ class CNN:
 
         return output
 
+# Todo: SIGUIENTE LINEA________________________________________________________________________________________________________________________________
+
     def convolutionscp(self, image, kernel, dimout=None):
 
-        lenkernel = kernel.shape  # (largeur,hauteur, canaux entree, canaux sortie)
+        lenkernel = kernel.shape  # (sortie, entree, hauteur,largeur)
 
         if dimout is None:  # calcul dim sortie
-            dimout = (int((image.shape[0] - lenkernel[0]) / self.stride) + 1, int((image.shape[1] - lenkernel[1]) / self.stride) + 1, lenkernel[3])
+            dimout = (lenkernel[0], int((image.shape[1] - self.lenkernel) / self.stride) + 1, int((image.shape[2] - self.lenkernel) / self.stride) + 1)
 
         output = np.zeros(dimout)
 
-        for d in range(lenkernel[3]):
-            a = np.array(convolve(image, kernel[:,:,:,d], mode="valid"))
-            t = a.shape
-            output[:,:,d] = a.reshape(t[0], t[1])
+        for d in range(dimout[0]):
+            for ce in range(image.shape[0]):
+                output[d] += correlate2d(image[ce], kernel[d,ce], mode="valid")
 
-        return output[::self.stride, ::self.stride]
-
-    def poolingnp(self, image):
-        pass
+        return output
 
     def poolingskim(self, image):
+        d, h, l = image.shape
 
-        h, l, d = image.shape
+        if h % self.lenkernelpool == 0:
+            d, h, l = image.shape
 
-        newh, newl = h - (h % self.lenkernelpool), l - (l % self.lenkernelpool)  # le cas ou pas pile
+            newdims = (d, int((h - self.lenkernelpool) / self.stride) + 1, int((l - self.lenkernelpool) / self.stride) + 1)
 
-        transformation = image[:newh, :newl, :]  # ca peut se faire aussi apres le pooling
+            output = np.zeros(newdims)
 
-        output = np.array(block_reduce(transformation, (self.lenkernelpool, self.lenkernelpool, 1), func=np.mean))
+            for c in range(newdims[0]):
+                output[c] += block_reduce(image[c], (self.lenkernelpool, self.lenkernelpool), func=np.mean)
 
-        return output[::self.poolstride//2,::self.poolstride//2] #choisir seulement les bonnes strides
+        else:
+            newdims = (d, int((h - self.lenkernelpool) / self.poolstride) + 1, int((l - self.lenkernelpool) / self.poolstride) + 1)
+
+            output = np.zeros(newdims)
+
+            for c in range(d):
+                output[c] = block_reduce(image[c], (self.lenkernelpool, self.lenkernelpool), func=np.mean)[:newdims[1], :newdims[2]]
+
+        return output #[::self.poolstride // 2, ::self.poolstride // 2]  # choisir seulement les bonnes strides
 
     def flatening(self, image):
         return image.reshape((-1,1))
 
     def paddington(self, image, pad):
-        return np.pad(image, (pad, pad))  # padding
+        return np.pad(image, (0, pad, pad))# padding
 
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
 
-        if self.nbconv > 0:
-            activationsconv = [input] #garder activees pour backprop des convolution
-            activationslay = [] #garder activees pour la backprop les variables des layers
-        else:
-            activationsconv = []
-            activationslay = [input]
+        activationsconv = [input] #garder activees pour backprop des convolution
+        activationslay = [] #garder activees pour la backprop les variables des layers
 
         #ici garder seulement avant activation
         zslay = []
@@ -362,8 +364,13 @@ class CNN:
 
         for c in range(self.nbconv): #parcours layers convolution
             kernel = self.parameters["cl" + str(c)]
-            conv = self.convolution(self.paddington(outlast, self.padding), kernel)
-            pool = self.pooling(conv)
+            if self.padding > 0:
+                paded = self.paddington(outlast, self.padding)
+            else:
+                paded = outlast
+
+            conv = self.convolutionscp(paded, kernel)
+            pool = self.poolingskim(conv)
 
             if c == self.nbconv - 1: #si arrives a la fin flattening layer
                 outlast = self.flatening(pool)
@@ -390,6 +397,8 @@ class CNN:
 
         return outlast, zslay, zsconv, activationslay, activationsconv #out last c'est la prediction et vieux c'est pour backprop
 
+# Todo: NO USAR HASTA SIGUIENTE LINEA__________________________________________________________________________________________________________________
+
     def backpoollent(self, dapres, dimsortie): #pooling pero al reves, recuperar algo de mismas dim que entrada en pooling
         s = dapres.shape
 
@@ -412,39 +421,49 @@ class CNN:
                     out[hdebut:hfin, ldebut:lfin, d] += np.full((self.lenkernelpool, self.lenkernelpool) , dapres[h,l,d] / long) #en toda la region ponemos la media
         return out
 
+# Todo: SIGUIENTE LINEA________________________________________________________________________________________________________________________________
+
     def backpoolnp(self, dapres, dimsortie):
-        if dimsortie[0] % self.lenkernelpool == 0:
+        if dimsortie[0] % self.lenkernelpool == 0: #si pile
             output = np.zeros(dimsortie)
 
             moyenne = dapres / (self.lenkernelpool * self.lenkernelpool)
 
-            for d in range(dapres.shape[2]):
-                output[:, :, d] = np.repeat(np.repeat(moyenne[:, :, d], self.lenkernelpool, axis=0), self.lenkernelpool,
-                                            axis=1)
+            for d in range(dapres.shape[0]):
+                output[d] = np.repeat(np.repeat(moyenne[d], self.lenkernelpool, axis=0), self.lenkernelpool, axis=1) #on recree un kernel avec les dimensions
 
             return output
         else:
-            h, l, c = dimsortie
+            c, h, l = dimsortie
 
-            dif = h % self.lenkernelpool, l % self.lenkernelpool
+            dif = h % self.lenkernelpool, l % self.lenkernelpool #si pas pile
 
             newh, newl = h - (dif[0]), l - (dif[1])
 
-            output = np.zeros((newh, newl, c))
+            output = np.zeros(dimsortie)
 
             moyenne = dapres / (self.lenkernelpool * self.lenkernelpool)
 
-            for d in range(dapres.shape[2]):
-                output[:, :, d] = np.repeat(np.repeat(moyenne[:, :, d], self.lenkernelpool, axis=0), self.lenkernelpool, axis=1)
+            for d in range(dapres.shape[0]):
+                output[d, :newh, :newl] = np.repeat(np.repeat(moyenne[d], self.lenkernelpool, axis=0), self.lenkernelpool, axis=1)
 
-            vraiout = np.zeros(dimsortie)
+            # vraiout = np.zeros(dimsortie) #si pas bonne performance changer ca par ajouter moyennes de ce qu'il reste
+            #
+            # vraiout[:, newh, :newl] = output
 
-            vraiout[:newh, :newl, :] = output
+            return output
 
-            return vraiout
+    def backconvolution(self, activation, dapres, filtre):
+        gradc = np.zeros(filtre.shape)
 
-    def backpoolautre(self, dapres, dimsortie):
-        pass
+        newdelta = np.zeros(activation.shape)
+
+        for d in range(gradc.shape[0]):
+            for c in range(activation.shape[0]):
+                gradc[d, c] += correlate2d(activation[c], dapres[d], mode="valid")
+                newdelta[c] += convolve2d(dapres[d], filtre[d,c], mode="full")
+
+        return gradc, newdelta
 
     def backprop(self, expected, zslay, zsconv, activationslay, activationsconv, nbinp):
         C = self.errorfunc[0](activationslay[-1], expected, nbinp) #Calcular error
@@ -452,7 +471,7 @@ class CNN:
         #crear los outputs
         dw = [np.zeros(self.dimweights[i]) for i in range(self.nblay)]
         db = [np.zeros((self.dimweights[i][0], 1)) for i in range(self.nblay)]
-        dc = [np.zeros((self.lenkernel, self.lenkernel, self.convdims[i][2], self.convdims[i][3])) for i in range(self.nbconv)]
+        dc = [np.zeros((self.convdims[i][3], self.convdims[i][2], self.lenkernel, self.lenkernel)) for i in range(self.nbconv)]
 
         delta = self.errorfunc[1](activationslay[-1], expected, nbinp) #error output layer
 
@@ -479,21 +498,22 @@ class CNN:
 
             s = self.convdims[-1] #dimensiones ultimo conv
 
-            delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[1],s[1], s[3]) #calcular ultimo error de nn
+            delta = (np.dot(ultimoweight.T, delta) * ultimadif).reshape(s[3], s[1],s[1]) #calcular ultimo error de nn
 
-            delta = self.backpool(delta, (s[0], s[0], s[3])).reshape(s[0], s[0], s[2], s[3]) #recuperar misma talla que input de pooling
+            delta = self.backpoolnp(delta, (s[3], s[0], s[0])) #recuperar misma talla que input de pooling
 
-            dc[-1] += self.convolution(activationsconv[self.nbconv-1], delta).reshape(self.lenkernel, self.lenkernel, s[2], s[3])
+            gradc, newdelta = self.backconvolution(activationsconv[self.nbconv - 1], delta, self.parameters["cl" + str(self.nbconv - 1)])
+
+            dc[-1] += gradc
 
             for c in range(self.nbconv - 2, -1, -1):
-                filtre = self.parameters["cl" + str(c)]
                 diff = self.fctconv[1](zsconv[c])
 
-                delta = self.convolution(delta, filtre) * diff
+                delta = newdelta * diff
 
-                #ici il manque backpool
+                #backpool
 
-                dLdf = self.convolution(activationsconv[c-1], delta)
+                dLdf = self.backconvolution(activationsconv[c-1], delta)
 
                 dc[c] += dLdf
 
@@ -551,7 +571,7 @@ class CNN:
         else:
             for _ in range(self.iter):
                 for p in range(len(self.pix)):
-                    forw = self.forwardprop(self.pix[p].reshape(28,28,-1))
+                    forw = self.forwardprop(self.pix[p].reshape(1,28,28)) #canaux, h,l
 
                     dw, db, loss, dc = self.backprop(self.vecteur(self.vales[p]), forw[1], forw[2], forw[3], forw[4], 1)
 
@@ -603,7 +623,7 @@ class CNN:
         else:
             nbbien = 0
             for image in range(len(self.qcmpix)):
-                forw = self.forwardprop(self.qcmpix[image].reshape(28,28,-1))
+                forw = self.forwardprop(self.qcmpix[image].reshape(1,28,28))
 
                 observed = self.choix(forw[0])
 
@@ -655,13 +675,18 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(1, "input"), (10, "relu")]
+convlay = [(1, "input"), (3, "relu")]
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
 parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay)
 
 g = CNN(parametros)
+
+# forw = g.forwardprop(g.pix[10].reshape(1,28,28))
+#
+# dw, db, loss, dc = g.backprop(g.vecteur(g.vales[10]), forw[1], forw[2], forw[3], forw[4], 1)
+
 
 print("je commence a mentrainer")
 t = time.time()
