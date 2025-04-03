@@ -2,17 +2,13 @@
 import time
 
 import numpy as np
-# import cupy as np
 from scipy.special import expit
-# from cupyx.scipy.special import expit
 
 from dataclasses import dataclass
 
 #CONV
 from scipy.signal import correlate2d
 from scipy.signal import convolve2d
-# from cupyx.scipy.signal import correlate2d
-# from cupyx.scipy.signal import convolve2d
 
 from skimage.measure import block_reduce
 from numpy.lib.stride_tricks import as_strided
@@ -298,7 +294,7 @@ class CNN:
             for c in range(d):
                 output[c] = block_reduce(image[c], (self.lenkernelpool, self.lenkernelpool), func=np.mean)[:newdims[1], :newdims[2]]
 
-        return output #[::self.poolstride // 2, ::self.poolstride // 2]  # choisir seulement les bonnes strides
+        return output  # choisir seulement les bonnes strides
 
     def flatening(self, image):
         return image.reshape((-1,1))
