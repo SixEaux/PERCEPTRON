@@ -2,13 +2,18 @@
 import time
 
 import numpy as np
+# import cupy as np
 from scipy.special import expit
-from dataclasses import dataclass
+# from cupyx.scipy.special import expit
 
+from dataclasses import dataclass
 
 #CONV
 from scipy.signal import correlate2d
 from scipy.signal import convolve2d
+# from cupyx.scipy.signal import correlate2d
+# from cupyx.scipy.signal import convolve2d
+
 from skimage.measure import block_reduce
 from numpy.lib.stride_tricks import as_strided
 
@@ -46,7 +51,7 @@ class Parametros:
     color: bool = False
 
     #CNN
-    kernel: int = 2
+    kernel: int = 3
     kernelpool: int = 2
     padding: int = 0
     stride: int = 1
@@ -613,11 +618,11 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(1, "input"), (10, "relu")] #(32, "relu"), (64, "relu"), (128, "relu")
+convlay = [(1, "input", True), (15, "relu", False)] #(32, "relu"), (64, "relu"), (128, "relu")
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, iterations=1)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, iterations=5)
 
 g = CNN(parametros)
 
