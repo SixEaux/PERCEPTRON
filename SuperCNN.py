@@ -448,13 +448,21 @@ class CNN:
         return dw, db, C, dc, dcb
 
     def actualiseweights(self, dw, db, nbinput, dc=None, dcb=None):
-        for l in range(0,self.nblay):
-            self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/nbinput)
-            self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/nbinput)
+        for w in range(max(self.nblay,self.nbconv)):
+            if w < self.nblay:
+                self.parameters["w" + str(w)] -= self.cvcoef * dw[w] * (1 / nbinput)
+                self.parameters["b" + str(w)] -= self.cvcoef * db[w] * (1 / nbinput)
+            if w < self.nbconv:
+                self.parameters["cl" + str(w)] -= self.cvcoef * dc[w] * (1 / nbinput)
+                self.parameters["cb" + str(w)] -= self.cvcoef * dcb[w] * (1 / nbinput)
 
-        for c in range(self.nbconv):
-            self.parameters["cl" + str(c)] -= self.cvcoef * dc[c] * (1/nbinput)
-            self.parameters["cb" + str(c)] -= self.cvcoef * dcb[c] * (1/nbinput)
+        # for l in range(0,self.nblay):
+        #     self.parameters["w" + str(l)] -= self.cvcoef * dw[l] * (1/nbinput)
+        #     self.parameters["b" + str(l)] -= self.cvcoef * db[l] * (1/nbinput)
+        #
+        # for c in range(self.nbconv):
+        #     self.parameters["cl" + str(c)] -= self.cvcoef * dc[c] * (1/nbinput)
+        #     self.parameters["cb" + str(c)] -= self.cvcoef * dcb[c] * (1/nbinput)
 
         return
 
@@ -605,7 +613,7 @@ class CNN:
 
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
-convlay = [(1, "input"), (10, "relu"), (15, "relu")] #(32, "relu"), (64, "relu"), (128, "relu")
+convlay = [(1, "input"), (10, "relu")] #(32, "relu"), (64, "relu"), (128, "relu")
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
