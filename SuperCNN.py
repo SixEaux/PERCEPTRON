@@ -1,6 +1,8 @@
 #GENERAL
 import time
 
+from statistics import mean
+
 import numpy as np
 from scipy.special import expit
 
@@ -31,7 +33,7 @@ import atexit
 # PARA EL FUTURO:
 # - Añadir que learning rate cambie con variacion de lost function
 
-np.seterr(all='raise')
+# np.seterr(all='raise')
 
 @dataclass
 class Parametros:
@@ -43,8 +45,8 @@ class Parametros:
     infolay: list
     infoconvlay: list
 
-    iterations: int = 1
-    coefcv: float = 0.01
+    iterations: int = 10
+    coefcv: float = 0.001
     coefcvadaptatif: bool = False
     batch: int = 1
     errorfunc: str = "CEL"
@@ -55,7 +57,7 @@ class Parametros:
 
     #CNN
     kernel: int = 3
-    kernelpool: int = 3
+    kernelpool: int = 2
     padding: int = 0
     stride: int = 1 #pour l'instant garder en 1
 
@@ -75,13 +77,25 @@ def timed(method):
         return result
     return wrapper
 
+def maxdico(d):
+    m = (None, 0)
+    for i in d.keys():
+        t = mean(d[i])
+        if t > m[1]:
+            m = (i, t)
+    return m
+
 @atexit.register
 def print_avg_times():
     print("\n--- Temps moyens d'exécution ---")
-    for func_name, times in execution_times.items():
-        avg = sum(times) / len(times)
-        print(f"{func_name}: {avg} secondes (appelée {len(times)} fois)")
+    for name, times in execution_times.items():
+        avg = mean(times)
+        print("__________________________________________________________________________________")
+        print(f"{name}: {avg} s    (appelée {len(times)} fois)")
 
+    print("______________________________________________________________________________________")
+    a = maxdico(execution_times)
+    print(f"Le maximum de temps est de {a[1]} par {a[0]}")
 
 class CNN:
     def __init__(self, par = Parametros):
@@ -156,7 +170,6 @@ class CNN:
     def converttogreyscale(self,rgbimage):
         return np.dot(rgbimage,[0.299, 0.587, 0.114])
 
-    @timed
     def processdata(self, pix, color, qcm, conv): #mettre les donnees sous la bonne forme
         if conv:
             if color:
@@ -178,7 +191,6 @@ class CNN:
 
         return datamod
 
-    @timed
     def params(self, infolay, infoconvlay): #infolay liste avec un tuple avec (nbneurons, fctactivation) / infoconvlay (nbfiltres, fct)
         param = {}
 
@@ -200,7 +212,6 @@ class CNN:
 
         return param
 
-    @timed
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
         if errorfunc == "eqm":
             def eqm(obs, exp, nbinput):
@@ -219,7 +230,6 @@ class CNN:
         else:
             raise ValueError("errorfunc must be specified")
 
-    @timed
     def getfct(self, acti):
         if acti == 'sigmoid':
             def sigmoid(x):
@@ -364,7 +374,6 @@ class CNN:
     def paddington(self, image, padavant, padapres): #padavant ce qu'on ajoute a la ligne et l'autre est evident
         return np.pad(image, ((0,0), (padavant, padapres), (padavant, padapres))) # padding
 
-    @timed
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
 
@@ -462,7 +471,6 @@ class CNN:
 
         return gradc, newdelta
 
-    @timed
     def backprop(self, expected, zslay, zsconv, activationslay, activationsconv, nbinp):
         C = self.errorfunc[0](activationslay[-1], expected, nbinp) #Calcular error
 
@@ -684,10 +692,11 @@ class CNN:
 val, pix, qcmval, qcmpix, pixelsconv, qcmpixconv = takeinputs()
 
 convlay = [(1, "input"), (10, "relu", True)]
+# convlay = [(1, "input"), (16, "relu", True), (32, "relu", True)]
 
 lay = [(64, "sigmoid"), (10, "softmax")]
 
-parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, iterations=1)
+parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, iterations=10)
 
 g = CNN(parametros)
 
