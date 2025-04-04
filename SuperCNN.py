@@ -57,7 +57,8 @@ class Parametros:
     stride: int = 1 #pour l'instant garder en 1
 
     poolnp: bool = True
-    convnp: bool = False
+    convnp: bool = True
+    backconvnp: bool = True
 
 class CNN:
     def __init__(self, par = Parametros):
@@ -82,6 +83,7 @@ class CNN:
 
         self.pooling = self.poolingnp if par.poolnp else self.poolingskim
         self.convolution = self.convolutionnp if par.convnp else self.convolutionscp
+        self.backconvolution = self.backconvolutionnpbest if par.backconvnp else self.backconvolutionscp
 
         d = 28
         for i in range(self.nbconv):
@@ -254,26 +256,39 @@ class CNN:
         else:
             raise "You forgot to specify the activation function"
 
-#INTENTOS NP____________________________________________________________________________________________________________________________________
+    def convolutionnp(self, image, kernel, *, mode="valid"):  # 2 casos dependiendo de shape kernel y imagen
+        lenkernel = kernel.shape  # Csortie, Centree, H,L
 
-    def convolutionnp(self, image, kernel):  # faire convolution avec librairie
-        lenkernel = kernel.shape # H,L,Centree, Csortie
 
-        mapa = np.lib.stride_tricks.sliding_window_view(image, (lenkernel[0], lenkernel[1], image.shape[2]))
+        if len(lenkernel) == 4:
+            if mode == "full":
+                newimage = self.paddington(image, lenkernel[2])
+            elif mode == "valid":
+                newimage = image
+            else:
+                raise ValueError("mode must be 'full' or 'valid'")
 
-        s = mapa.shape
+            mapa = np.lib.stride_tricks.sliding_window_view(newimage, (lenkernel[2], lenkernel[3]), axis=(1, 2))
 
-        print("image", image.shape)
-        print("kernel", lenkernel)
-        print("mapa",s)
+            output = np.tensordot(mapa, kernel, axes=([3, 4, 0], [2, 3, 1])).transpose((2, 0, 1))
 
-        output = np.tensordot(mapa, kernel, axes=([2,3], [0,1]))
+        elif len(lenkernel) == 3:
+            if mode == "full":
+                newimage = self.paddington(image, lenkernel[1])
+            elif mode == "valid":
+                newimage = image
+            else:
+                raise ValueError("mode must be 'full' or 'valid'")
+
+            mapa = np.lib.stride_tricks.sliding_window_view(newimage, (lenkernel[1], lenkernel[2]), axis=(1, 2))
+
+            output = np.tensordot(mapa, kernel, axes=([3, 4], [1, 2])).transpose(3,1,2,0)
+        else:
+            raise "Problem with the shapes they are not good"
 
         return output
 
-#SIGUIENTE LINEA________________________________________________________________________________________________________________________________
-
-    def convolutionscp(self, image, kernel, dimout=None):
+    def convolutionscp(self, image, kernel, *, dimout=None, mode=None):
 
         lenkernel = kernel.shape  # (sortie, entree, hauteur,largeur)
 
@@ -317,7 +332,7 @@ class CNN:
         return image.reshape((-1,1))
 
     def paddington(self, image, pad):
-        return np.pad(image, ((0, 0), (pad, pad), (pad, pad)))# padding
+        return np.pad(image, ((0, 0), (pad, pad), (pad, pad))) # padding
 
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
@@ -396,7 +411,7 @@ class CNN:
 
             return output
 
-    def backconvolution(self, activation, dapres, filtre):
+    def backconvolutionscp(self, activation, dapres, filtre):
         gradc = np.zeros(filtre.shape)
 
         newdelta = np.zeros(activation.shape)
@@ -405,6 +420,16 @@ class CNN:
             for c in range(activation.shape[0]):
                 gradc[d, c] += correlate2d(activation[c, ::self.stride, ::self.stride], dapres[d], mode="valid")
                 newdelta[c] += convolve2d(dapres[d], filtre[d,c], mode="full")
+
+        return gradc, newdelta
+
+    def backconvolutionnpbest(self, activation, dapres, filtre):
+        #pad image pour delta
+        #convolution comme avant mais en inversant kernel
+
+        gradc = self.convolution(activation, dapres)
+
+        newdelta = self.convolution(dapres, np.fliplr(np.flipud(filtre)), mode="full")
 
         return gradc, newdelta
 
@@ -635,6 +660,7 @@ parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infola
 
 g = CNN(parametros)
 
+
 print("je commence a mentrainer")
 t = time.time()
 
@@ -643,3 +669,11 @@ g.train()
 print("jai fini en :", time.time()-t)
 
 print("taux de reussite", g.tauxlent())
+
+
+# forw = g.forwardprop(g.pix[10].reshape(1,28,28)) #canaux, h,l
+#
+# dw, db, loss, dc, dcb = g.backprop(g.vecteur(g.vales[10]), forw[1], forw[2], forw[3], forw[4], 1)
+#
+# g.actualiseweights(dw, db, 1, dc, dcb)
+
