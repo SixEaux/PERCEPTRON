@@ -19,6 +19,9 @@ from matplotlib import pyplot as plt
 #ORGANIZACION
 from Auxiliares import takeinputs, Draw
 
+from functools import wraps
+from collections import defaultdict
+import atexit
 
 # PROBLEMAS:
 # - convolutionnp
@@ -59,6 +62,26 @@ class Parametros:
     poolnp: bool = True
     convnp: bool = True
     backconvnp: bool = True
+
+execution_times = defaultdict(list)
+
+def timed(method):
+    @wraps(method)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = method(*args, **kwargs)
+        end = time.time()
+        execution_times[method.__name__].append(end - start)
+        return result
+    return wrapper
+
+@atexit.register
+def print_avg_times():
+    print("\n--- Temps moyens d'exécution ---")
+    for func_name, times in execution_times.items():
+        avg = sum(times) / len(times)
+        print(f"{func_name}: {avg} secondes (appelée {len(times)} fois)")
+
 
 class CNN:
     def __init__(self, par = Parametros):
@@ -119,6 +142,7 @@ class CNN:
         self.aprentissagedynamique = par.apprentissagedynamique
         self.graph = par.graph
 
+    @timed
     def printbasesimple(self, base):
         print(tabulate(base.reshape((28, 28))))
 
@@ -132,6 +156,7 @@ class CNN:
     def converttogreyscale(self,rgbimage):
         return np.dot(rgbimage,[0.299, 0.587, 0.114])
 
+    @timed
     def processdata(self, pix, color, qcm, conv): #mettre les donnees sous la bonne forme
         if conv:
             if color:
@@ -153,6 +178,7 @@ class CNN:
 
         return datamod
 
+    @timed
     def params(self, infolay, infoconvlay): #infolay liste avec un tuple avec (nbneurons, fctactivation) / infoconvlay (nbfiltres, fct)
         param = {}
 
@@ -174,6 +200,7 @@ class CNN:
 
         return param
 
+    @timed
     def geterrorfunc(self, errorfunc): #exp est un onehotvect
         if errorfunc == "eqm":
             def eqm(obs, exp, nbinput):
@@ -192,6 +219,7 @@ class CNN:
         else:
             raise ValueError("errorfunc must be specified")
 
+    @timed
     def getfct(self, acti):
         if acti == 'sigmoid':
             def sigmoid(x):
@@ -256,33 +284,32 @@ class CNN:
         else:
             raise "You forgot to specify the activation function"
 
-    def convolutionnp(self, image, kernel, *, mode="valid"):  # 2 casos dependiendo de shape kernel y imagen
+    @timed
+    def convolutionnp(self, image, kernel, *, mode="valid", reverse=False):  # 2 casos dependiendo de shape kernel y imagen
         lenkernel = kernel.shape  # Csortie, Centree, H,L
 
+        if mode == "full":
+            newimage = self.paddington(image, lenkernel[2]-1, lenkernel[3]-1)
+        elif mode == "valid":
+            newimage = image
+        else:
+            raise ValueError("mode must be 'full' or 'valid'")
 
         if len(lenkernel) == 4:
-            if mode == "full":
-                newimage = self.paddington(image, lenkernel[2])
-            elif mode == "valid":
-                newimage = image
-            else:
-                raise ValueError("mode must be 'full' or 'valid'")
 
             mapa = np.lib.stride_tricks.sliding_window_view(newimage, (lenkernel[2], lenkernel[3]), axis=(1, 2))
 
-            output = np.tensordot(mapa, kernel, axes=([3, 4, 0], [2, 3, 1])).transpose((2, 0, 1))
+            if not reverse: #forward prop
+                output = np.tensordot(mapa, kernel, axes=([0, 3, 4], [1, 2, 3])).transpose((2, 0, 1)) #essayer d'enlever le transpose pour opti
+            else:
+                output = np.tensordot(mapa, kernel, axes=([0, 3, 4], [0, 2, 3])).transpose((2, 0, 1))
 
         elif len(lenkernel) == 3:
-            if mode == "full":
-                newimage = self.paddington(image, lenkernel[1])
-            elif mode == "valid":
-                newimage = image
-            else:
-                raise ValueError("mode must be 'full' or 'valid'")
 
             mapa = np.lib.stride_tricks.sliding_window_view(newimage, (lenkernel[1], lenkernel[2]), axis=(1, 2))
 
-            output = np.tensordot(mapa, kernel, axes=([3, 4], [1, 2])).transpose(3,1,2,0)
+            output = np.tensordot(mapa, kernel, axes=([3, 4], [1, 2])).transpose(3,0,1,2)
+
         else:
             raise "Problem with the shapes they are not good"
 
@@ -324,16 +351,20 @@ class CNN:
 
         return output
 
+    @timed
     def poolingnp(self, image):
         division = np.lib.stride_tricks.sliding_window_view(image, (self.lenkernelpool, self.lenkernelpool), axis=(1, 2))[:, ::self.lenkernelpool, ::self.lenkernelpool]
         return np.average(division, axis=(3, 4))
 
+    @timed
     def flatening(self, image):
         return image.reshape((-1,1))
 
-    def paddington(self, image, pad):
-        return np.pad(image, ((0, 0), (pad, pad), (pad, pad))) # padding
+    @timed
+    def paddington(self, image, padavant, padapres): #padavant ce qu'on ajoute a la ligne et l'autre est evident
+        return np.pad(image, ((0,0), (padavant, padapres), (padavant, padapres))) # padding
 
+    @timed
     def forwardprop(self, input): #forward all the layers until output
         outlast = input
 
@@ -349,7 +380,7 @@ class CNN:
             biais = self.parameters["cb" + str(c)]
 
             if self.padding > 0:
-                paded = self.paddington(outlast, self.padding)
+                paded = self.paddington(outlast, self.padding, self.padding) #c'est surement mal
             else:
                 paded = outlast
 
@@ -386,15 +417,14 @@ class CNN:
         return outlast, zslay, zsconv, activationslay, activationsconv #out last c'est la prediction et vieux c'est pour backprop
 
     def backpoolnp(self, dapres, dimsortie):
+        moyenne = dapres / (self.lenkernelpool * self.lenkernelpool)
+
         if dimsortie[1] % self.lenkernelpool == 0: #si pile
             output = np.zeros(dimsortie)
-
-            moyenne = dapres / (self.lenkernelpool * self.lenkernelpool)
 
             for d in range(dapres.shape[0]):
                 output[d] = np.repeat(np.repeat(moyenne[d], self.lenkernelpool, axis=0), self.lenkernelpool, axis=1) #on recree un kernel avec les dimensions
 
-            return output
         else:
             c, h, l = dimsortie
 
@@ -404,12 +434,10 @@ class CNN:
 
             output = np.zeros(dimsortie)
 
-            moyenne = dapres / (self.lenkernelpool * self.lenkernelpool)
-
             for d in range(dapres.shape[0]):
                 output[d, :newh, :newl] = np.repeat(np.repeat(moyenne[d], self.lenkernelpool, axis=0), self.lenkernelpool, axis=1)
 
-            return output
+        return output
 
     def backconvolutionscp(self, activation, dapres, filtre):
         gradc = np.zeros(filtre.shape)
@@ -423,16 +451,18 @@ class CNN:
 
         return gradc, newdelta
 
+    @timed
     def backconvolutionnpbest(self, activation, dapres, filtre):
         #pad image pour delta
         #convolution comme avant mais en inversant kernel
 
         gradc = self.convolution(activation, dapres)
 
-        newdelta = self.convolution(dapres, np.fliplr(np.flipud(filtre)), mode="full")
+        newdelta = self.convolution(dapres, np.flip(filtre, axis=(2,3)), mode="full", reverse=True)
 
         return gradc, newdelta
 
+    @timed
     def backprop(self, expected, zslay, zsconv, activationslay, activationsconv, nbinp):
         C = self.errorfunc[0](activationslay[-1], expected, nbinp) #Calcular error
 
@@ -495,6 +525,7 @@ class CNN:
 
         return dw, db, C, dc, dcb
 
+    @timed
     def actualiseweights(self, dw, db, nbinput, dc=None, dcb=None):
         for w in range(max(self.nblay,self.nbconv)):
             if w < self.nblay:
@@ -659,7 +690,6 @@ lay = [(64, "sigmoid"), (10, "softmax")]
 parametros = Parametros(pix=pix, vales=val, qcmpix=qcmpix, qcmval=qcmval, infolay=lay, infoconvlay=convlay, iterations=1)
 
 g = CNN(parametros)
-
 
 print("je commence a mentrainer")
 t = time.time()
